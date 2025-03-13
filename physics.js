@@ -149,32 +149,25 @@ function gameLoop(timeStamp) {
     secondsPassed = Math.min(secondsPassed, 0.1);
     oldTimeStamp = timeStamp;
 
-    for (let obj of gameObjects) {
-        obj.update(secondsPassed);
-    }
-
-    detectCollisions();
-    detectEdgeCollisions();  // Add this line to check for edge collisions
-    
     clearCanvas();
-    
-    for (let obj of gameObjects) {
-        obj.draw();
-    }
-    
+    gameObjects.forEach(obj => obj.update(secondsPassed));
+    detectCollisions();
+    detectEdgeCollisions();
+    gameObjects.forEach(obj => obj.draw());
+    drawStats();
+
     window.requestAnimationFrame(gameLoop);
-    
 }
 
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawstats() {
+function drawStats() {
     let totalObjects = gameObjects.length;
-    let totalForce = gameObjects.reduce((sum, obj) => sum + totalForce, 0);
+    let totalForce = gameObjects.reduce((sum, obj) => sum + obj.totalForce, 0);
     let avgForce = totalObjects > 0 ? totalForce / totalObjects : 0;
-    let forceDeviation = Math.sqrt(gameObjects.reduce((sum, obj) => sum + Math.pow(obj.totalForce - avgForce, 2), 0 ) / totalObjects || 0);
+    let forceDeviation = Math.sqrt(gameObjects.reduce((sum, obj) => sum + Math.pow(obj.totalForce - avgForce, 2), 0) / totalObjects || 0);
 
     ctx.fillStyle = 'white';
     ctx.font = '16px Arial';
