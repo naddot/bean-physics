@@ -350,8 +350,8 @@ function detectEdgeCollisions() {
         if (obj.x < obj.radius) {
             obj.vx = Math.abs(obj.vx) * restitution;
             obj.x = obj.radius;
-        } else if (obj.x > canvas.width - obj.radius) {
-            obj.vx = -Math.abs(obj.vx) * restitution*2;
+        } else if (obj.x > canvas.width - obj.radius ) {
+            obj.vx = -Math.abs(obj.vx) * restitution;
             obj.x = canvas.width - obj.radius;
         }
         // Check for bottom and top
