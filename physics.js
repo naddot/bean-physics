@@ -194,7 +194,7 @@ class Circle extends GameObject {
         this.radius = radius;
         this.totalForce = 0; // Initialize total force property
         this.colorIndex = 0; // Initialize color index to start with the first color of updated color palette
-        this.colors = ['#fcfc8d', '#ffff61', '#ebcc34', '#ebb134', '#d19b26', '#d68418', '#d9800d', '#ad6103', '#8c4e03', '#995829', '#804f2d', '#6b462b', '#5c3e29', '#453021', '#36271c', '#1f1611', '#0d0a07']; // Updated color palette
+        this.colors = ['#d3fc8d','#e0fc8d', '#fcfc8d', '#ffff61', '#ebcc34', '#ebb134', '#d19b26', '#d68418', '#d9800d', '#ad6103', '#8c4e03', '#995829', '#804f2d', '#6b462b', '#5c3e29', '#453021', '#36271c', '#1f1611', '#0d0a07']; // Updated color palette
         this.startingColors = ['#5cff82', '#67e083', '#5cbd73', '#73bd5c', '#98ed7e', '#b2ed7e', '#c3fa93', '#c7e87b', '#e6fc8d', '#8dfcb0']; // Initial color palette
         
         // Pick a random color from the starting colors
@@ -204,7 +204,7 @@ class Circle extends GameObject {
 
     // Update color based on the total force and defined thresholds
     updateColorBasedOnForce() {
-        const forceThresholds = [500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 500000, 700000, 820000, 900000, 950000, 1000000  ]; // Example force thresholds
+        const forceThresholds = [500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 500000, 700000, 820000, 900000, 950000, 1000000, 1000500, 1000750, 1000950, 1001000]; // Example force thresholds
 
         // Find the next color index based on the force threshold
         for (let i = 0; i < forceThresholds.length; i++) {
