@@ -4,10 +4,10 @@ let gameObjects = [];
 const g = 9.81*10; // Gravitational acceleration
 let mouseX = 0;
 let mouseY = 0;
-const mouseMass = 5000;
-let mouseVX = 0;
-let mouseVY = 0;
-const mouseRadius = 15; // Invisible radius for interaction
+const mouseMass = 700;
+let mouseVX = 1;
+let mouseVY = 1;
+const mouseRadius = 50; // Invisible radius for interaction
 
 // Set a restitution, a lower value will lose more energy when colliding
 const restitution = 0.90;
@@ -49,8 +49,8 @@ function darkenHexColor(hex, percent) {
 window.addEventListener("load", resizeCanvas);
 window.addEventListener("resize", resizeCanvas);
 canvas.addEventListener("mousemove", (event) => {
-    mouseVX = event.clientX - mouseX;
-    mouseVY = event.clientY - mouseY;
+    mouseVX = 1+(event.clientX - mouseX)**2;
+    mouseVY = 1+(event.clientY - mouseY)**2;
     mouseX = event.clientX;
     mouseY = event.clientY;
 });
