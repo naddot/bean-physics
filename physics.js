@@ -72,21 +72,18 @@ function applyShakeEffect() {
     console.log("Shake detected! Beans shaken!");
 }
 
-// Modify motion event listener to detect shakes
-window.addEventListener("devicemotion", detectShake);
-
 // Request permission for motion data (iOS-specific)
 function requestMotionPermission() {
     if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
         DeviceMotionEvent.requestPermission()
             .then(response => {
                 if (response === "granted") {
-                    window.addEventListener("devicemotion", handleMotion);
+                    window.addEventListener("devicemotion", handleMotion, detectShake);
                 }
             })
             .catch(console.error);
     } else {
-        window.addEventListener("devicemotion", handleMotion);
+        window.addEventListener("devicemotion", handleMotion, detectShake);
     }
 }
 
@@ -386,7 +383,7 @@ function resolveCollision(obj1, obj2) {
     // Calculate the force for both objects based on the impulse
     let force1 = impulse * obj2.mass;
     // Add the calculated force to the totalForce property of each circle
-    obj1.totalForce += force1;
+    obj1.totalForce += force1*0.25;
     // Update the color based on the new totalForce
     obj1.updateColorBasedOnForce();
     obj1.vx -= impulse * obj2.mass * vCollisionNorm.x;
@@ -401,7 +398,7 @@ function resolveCollision(obj1, obj2) {
         let force2 = impulse * obj1.mass;
         obj2.vx += impulse * obj1.mass * vCollisionNorm.x;
         obj2.vy += impulse * obj1.mass * vCollisionNorm.y;
-        obj2.totalForce += force2;
+        obj2.totalForce += force2*0.25;
         obj2.updateColorBasedOnForce();
     }
 }
