@@ -12,6 +12,9 @@ let mouseActive = false;
 let accelX = 0, accelY = 0, accelZ = 0;
 let lastAccelX = 0, lastAccelY = 0;
 let smoothingFactor = 0.8; // Adjust for smoother movement
+let lastShakeTime = 0; // Prevents repeated shakes
+const shakeThreshold = 15; // Adjust sensitivity (higher = harder shake)
+const shakeCooldown = 1000; // 1 second cooldown between shakes
 
 // Set a restitution, a lower value will lose more energy when colliding
 const restitution = 0.90;
@@ -25,6 +28,53 @@ function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
+
+function detectShake(event) {
+    if (!event.accelerationIncludingGravity) return;
+
+    let accelX = event.accelerationIncludingGravity.x;
+    let accelY = event.accelerationIncludingGravity.y;
+    let accelZ = event.accelerationIncludingGravity.z;
+
+    // Calculate change in acceleration (difference between frames)
+    let deltaX = Math.abs(accelX - lastAccelX);
+    let deltaY = Math.abs(accelY - lastAccelY);
+    let deltaZ = Math.abs(accelZ - lastAccelZ);
+    
+    // Total acceleration change
+    let totalChange = deltaX + deltaY + deltaZ;
+
+    // If total acceleration change is above threshold, register as a shake
+    if (totalChange > shakeThreshold) {
+        let currentTime = Date.now();
+        
+        // Apply shake effect if cooldown has passed
+        if (currentTime - lastShakeTime > shakeCooldown) {
+            lastShakeTime = currentTime; // Update last shake time
+            applyShakeEffect(); // Apply the effect to the beans
+        }
+    }
+
+    // Store last acceleration values for next frame
+    lastAccelX = accelX;
+    lastAccelY = accelY;
+    lastAccelZ = accelZ;
+}
+
+// Function to apply velocity burst to all beans
+function applyShakeEffect() {
+    gameObjects.forEach(obj => {
+        if (obj instanceof Circle) {
+            obj.vx += (Math.random() - 0.5) * 400; // Random shake impulse
+            obj.vy += (Math.random() - 0.5) * 400;
+        }
+    });
+    console.log("Shake detected! Beans shaken!");
+}
+
+// Modify motion event listener to detect shakes
+window.addEventListener("devicemotion", detectShake);
+
 // Request permission for motion data (iOS-specific)
 function requestMotionPermission() {
     if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
