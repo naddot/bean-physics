@@ -6,7 +6,7 @@
 }
 
 /* Full-screen experience */
-body {
+body, html {
     font-family: Arial, sans-serif;
     display: flex;
     justify-content: center;
@@ -17,7 +17,7 @@ body {
     background: #f4f4f9;
     overflow: hidden;
     position: relative;
-    touch-action: manipulation; /* Prevents zooming & scrolling */
+    touch-action: none; /* Prevents zooming & scrolling */
 }
 
 /* Full-screen responsive canvas */
@@ -55,5 +55,8 @@ canvas {
 @media (max-height: 600px) {
     #spawnButton {
         top: 60%; /* Adjust for very small screens */
+    }
+        html, body {
+        position: fixed; /* Prevents scrolling issues */
     }
 }
