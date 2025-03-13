@@ -1,34 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>BEANS</title>
-        <meta name="description" content="HTML5 Game">
-        <meta name="author" content="Daniel">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Canvas</title>
-    <style>
-        /* Ensures the canvas fills the entire screen */
-        body, html {
-            margin: 0;
-            padding: 0;
-            overflow: hidden; /* Prevents scrolling */
-        }
-        canvas {
-            display: block; /* Removes extra spacing */
-        }
-    </style>
+<head>
+    <meta charset="UTF-8">
+    <title>BEANS</title>
+    <meta name="description" content="HTML5 Game">
+    <meta name="author" content="Daniel">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    
     <link rel="stylesheet" href="styles.css">
-    </head>
-    <body>
+</head>
+<body>
 
-        <!-- Canvas for drawing the game -->
-        <canvas id="myCanvas"></canvas>
+    <!-- Canvas for drawing the game -->
+    <canvas id="myCanvas"></canvas>
 
-        <!-- Button to spawn new circles -->
-        <button id="spawnButton">Make bean</button>
+    <!-- Button to spawn new circles -->
+    <button id="spawnButton">Make bean</button>
 
-        <!-- Include your game logic script -->
-        <script src="physics.js"></script>
-    </body>
+    <!-- Include your game logic script -->
+    <script src="physics.js"></script>
+
+    <script>
+        function resizeCanvas() {
+            const canvas = document.getElementById('myCanvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        // Resize on load, window resize, and orientation change
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', resizeCanvas);
+
+        // Hide UI bars when interacting
+        document.body.addEventListener('click', () => {
+            window.scrollTo(0, 1);
+            resizeCanvas();
+        });
+    </script>
+
+</body>
 </html>
