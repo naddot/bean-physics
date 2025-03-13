@@ -9,6 +9,9 @@ let mouseVX = 1;
 let mouseVY = 1;
 const mouseRadius = 50; // Invisible radius for interaction
 let mouseActive = false;
+let accelX = 0, accelY = 0, accelZ = 0;
+let lastAccelX = 0, lastAccelY = 0;
+let smoothingFactor = 0.8; // Adjust for smoother movement
 
 // Set a restitution, a lower value will lose more energy when colliding
 const restitution = 0.90;
@@ -22,6 +25,46 @@ function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
+// Request permission for motion data (iOS-specific)
+function requestMotionPermission() {
+    if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+        DeviceMotionEvent.requestPermission()
+            .then(response => {
+                if (response === "granted") {
+                    window.addEventListener("devicemotion", handleMotion);
+                }
+            })
+            .catch(console.error);
+    } else {
+        window.addEventListener("devicemotion", handleMotion);
+    }
+}
+
+// Handles motion data
+function handleMotion(event) {
+    if (event.accelerationIncludingGravity) {
+        let rawX = event.accelerationIncludingGravity.x;
+        let rawY = event.accelerationIncludingGravity.y;
+
+        // Apply a smoothing filter
+        accelX = smoothingFactor * lastAccelX + (1 - smoothingFactor) * rawX;
+        accelY = smoothingFactor * lastAccelY + (1 - smoothingFactor) * rawY;
+
+        lastAccelX = accelX;
+        lastAccelY = accelY;
+    }
+}
+
+// Apply motion data to game objects
+function applyMotionToBeans() {
+    gameObjects.forEach(obj => {
+        if (obj instanceof Circle) {
+            obj.vx += accelX * 2; // Adjust multiplier for sensitivity
+            obj.vy -= accelY * 2; // Invert Y to match screen orientation
+        }
+    });
+}
+
 
 function darkenHexColor(hex, percent) {
     // Remove the '#' from the beginning if it's there
@@ -71,29 +114,6 @@ canvas.addEventListener("mousemove", (event) => {
     }
 });
 
-// Touch event listeners for mobile
-canvas.addEventListener("touchstart", (event) => {
-    mouseActive = true;
-    let touch = event.touches[0];
-    mouseX = touch.clientX;
-    mouseY = touch.clientY;
-    mouseVX = 0;
-    mouseVY = 0;
-});
-
-canvas.addEventListener("touchmove", (event) => {
-    if (mouseActive) {
-        let touch = event.touches[0];
-        mouseVX = touch.clientX - mouseX;
-        mouseVY = touch.clientY - mouseY;
-        mouseX = touch.clientX;
-        mouseY = touch.clientY;
-    }
-});
-
-canvas.addEventListener("touchend", () => {
-    mouseActive = false;
-});
 
 // Resize the canvas when the window resizes
 window.addEventListener('resize', () => {
@@ -199,8 +219,9 @@ function gameLoop(timeStamp) {
     secondsPassed = (timeStamp - oldTimeStamp) / 1000;
     secondsPassed = Math.min(secondsPassed, 0.1);
     oldTimeStamp = timeStamp;
-
+    
     clearCanvas();
+    applyMotionToBeans(); // Update v
     gameObjects.forEach(obj => obj.update(secondsPassed));
     detectCollisions();
     detectEdgeCollisions();
