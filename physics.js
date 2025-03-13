@@ -2,6 +2,8 @@ let secondsPassed = 0;
 let oldTimeStamp = 0;
 let gameObjects = [];
 const g = 9.81*10; // Gravitational acceleration
+let mouseX = 0;
+let mouseY = 0;
 
 // Set a restitution, a lower value will lose more energy when colliding
 const restitution = 0.90;
@@ -42,6 +44,10 @@ function darkenHexColor(hex, percent) {
 // Run on load and resize
 window.addEventListener("load", resizeCanvas);
 window.addEventListener("resize", resizeCanvas);
+canvas.addEventListener("mousemove", (event) => {
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+});
 
 
 // Resize the canvas when the window resizes
@@ -174,6 +180,7 @@ function drawStats() {
     ctx.fillText(`Total Objects: ${totalObjects}`, 10, 20);
     ctx.fillText(`Average Force: ${avgForce.toFixed(2)}`, 10, 40);
     ctx.fillText(`Force Deviation: ${forceDeviation.toFixed(2)}`, 10, 60);
+    ctx.fillText(`Mouse Position: (${mouseX}, ${mouseY})`, 10, 80);
 }
 
 function detectCollisions() {
