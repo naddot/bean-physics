@@ -6,17 +6,17 @@
 }
 
 /* Full-screen experience */
-html, body {
+body {
     font-family: Arial, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: column;
     width: 100vw;
-    height: 100dvh; /* Fixes mobile browser UI issues */
+    height: 100dvh; /* Uses dynamic viewport height to fix mobile issues */
     background: #f4f4f9;
-    overflow: hidden; /* Prevent scrolling */
-    position: fixed; /* Fixes scrolling on mobile */
+    overflow: hidden;
+    position: relative;
     touch-action: none; /* Prevents zooming & scrolling */
 }
 
@@ -30,26 +30,10 @@ canvas {
     left: 0;
 }
 
-/* Shake message */
-#shakeMessage {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 15px 25px;
-    font-size: 18px;
-    border-radius: 10px;
-    opacity: 0; /* Initially hidden */
-    transition: opacity 0.5s ease-in-out;
-    z-index: 100;
-}
-
 /* Button positioning and styling */
 #spawnButton {
     position: absolute;
-    top: 60%; /* Moves the button lower to avoid overlapping the shake message */
+    top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     padding: 12px 25px;
@@ -67,9 +51,9 @@ canvas {
     background: #4e3629;
 }
 
-/* Responsive fix: Adjust button position on small screens */
+/* Responsive fix: Re-center the button on resize */
 @media (max-height: 600px) {
     #spawnButton {
-        top: 65%; /* Moves the button lower for smaller screens */
+        top: 60%; /* Adjust for very small screens */
     }
 }
