@@ -215,21 +215,6 @@ function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function detectMouseCollisions() {
-    if (!mouseActive) return;
-    gameObjects.forEach(obj => {
-        let dx = obj.x - mouseX;
-        let dy = obj.y - mouseY;
-        let distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance <= obj.radius + mouseRadius) {
-            let overlap = obj.radius + mouseRadius - distance;
-            obj.x += (overlap / 2) * (dx / distance);
-            obj.y += (overlap / 2) * (dy / distance);
-            resolveCollision(obj, { x: mouseX, y: mouseY, vx: mouseVX, vy: mouseVY, mass: mouseMass });
-        }
-    });
-}
-
 function drawStats() {
     let totalObjects = gameObjects.length;
     let totalForce = gameObjects.reduce((sum, obj) => sum + obj.totalForce, 0);
@@ -242,6 +227,23 @@ function drawStats() {
     ctx.fillText(`Average Force: ${avgForce.toFixed(2)}`, 10, 40);
     ctx.fillText(`Force Deviation: ${forceDeviation.toFixed(2)}`, 10, 60);
     ctx.fillText(`Mouse Position: (${mouseX}, ${mouseY})`, 10, 80);
+}
+
+function detectMouseCollisions() {
+    if (!mouseActive) return;
+    gameObjects.forEach(obj => {
+        let dx = obj.x - mouseX;
+        let dy = obj.y - mouseY;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance <= obj.radius + mouseRadius) {
+            let overlap = obj.radius + mouseRadius - distance;
+            obj.x += (overlap / 2) * (dx / distance);
+            obj.y += (overlap / 2) * (dy / distance);
+            obj.vx = -Math.abs(obj.vx) * restitution;
+            obj.vy = -Math.abs(obj.vy) * restitution;
+            resolveCollision(obj, { x: mouseX, y: mouseY, vx: mouseVX+1*2, vy: mouseVY+1*2, mass: mouseMass });
+        }
+    });
 }
 
 function detectCollisions() {
