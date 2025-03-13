@@ -7,6 +7,7 @@ let mouseY = 0;
 const mouseMass = 5000;
 let mouseVX = 0;
 let mouseVY = 0;
+const mouseRadius = 15; // Invisible radius for interaction
 
 // Set a restitution, a lower value will lose more energy when colliding
 const restitution = 0.90;
@@ -180,7 +181,7 @@ function detectMouseCollisions() {
         let dx = obj.x - mouseX;
         let dy = obj.y - mouseY;
         let distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance <= obj.radius) {
+        if (distance <= obj.radius + mouseRadius) {
             resolveCollision(obj, { x: mouseX, y: mouseY, vx: mouseVX, vy: mouseVY, mass: mouseMass });
         }
     });
@@ -261,31 +262,12 @@ function resolveCollision(obj1, obj2) {
     if (speed < 0) return;
 
     let impulse = (2 * speed) / (obj1.mass + obj2.mass);
-
-        // Calculate the force for both objects based on the impulse
-    let force1 = impulse * obj2.mass;
-    let force2 = impulse * obj1.mass;
-    // Add the calculated force to the totalForce property of each circle
-    obj1.totalForce += force1;
-    obj2.totalForce += force2;
-
-    // Update the color based on the new totalForce
-    obj1.updateColorBasedOnForce();
-    obj2.updateColorBasedOnForce();
-
     obj1.vx -= impulse * obj2.mass * vCollisionNorm.x;
     obj1.vy -= impulse * obj2.mass * vCollisionNorm.y;
-    obj2.vx += impulse * obj1.mass * vCollisionNorm.x;
-    obj2.vy += impulse * obj1.mass * vCollisionNorm.y;
-
-    // Angular velocity calculation for both objects
-    let radius1 = Math.sqrt(vCollision.x ** 2 + vCollision.y ** 2);
-    let radius2 = radius1; // Same radius for simplicity (both circles)
-    let angularImpulse1 = force1 * radius1;
-    let angularImpulse2 = force2 * radius2;
-
-    obj1.angularVelocity += angularImpulse1 / obj1.mass;
-    obj2.angularVelocity -= angularImpulse2 / obj2.mass;
+    if (obj2.mass !== mouseMass) {
+        obj2.vx += impulse * obj1.mass * vCollisionNorm.x;
+        obj2.vy += impulse * obj1.mass * vCollisionNorm.y;
+    }
 }
 // Spawning logic
 function spawnCircle() {
