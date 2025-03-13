@@ -109,8 +109,8 @@ function handleMotion(event) {
 function applyMotionToBeans() {
     gameObjects.forEach(obj => {
         if (obj instanceof Circle) {
-            //obj.vx -= accelX * 2; // Adjust multiplier for sensitivity
-            //obj.vy += accelY * 2; // Invert Y to match screen orientation
+            obj.vx -= accelX*-1 * 2; // Adjust multiplier for sensitivity
+            obj.vy += accelY*-1 * 2; // Invert Y to match screen orientation
         }
     });
 }
@@ -271,7 +271,7 @@ function gameLoop(timeStamp) {
     oldTimeStamp = timeStamp;
     
     clearCanvas();
-    //applyMotionToBeans(); // Update v
+    applyMotionToBeans(); // Update v
     gameObjects.forEach(obj => obj.update(secondsPassed));
     detectCollisions();
     detectEdgeCollisions();
