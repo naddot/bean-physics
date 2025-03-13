@@ -109,8 +109,8 @@ function handleMotion(event) {
 function applyMotionToBeans() {
     gameObjects.forEach(obj => {
         if (obj instanceof Circle) {
-            obj.vx -= accelX * 2; // Adjust multiplier for sensitivity
-            obj.vy += accelY * 2; // Invert Y to match screen orientation
+            //obj.vx -= accelX * 2; // Adjust multiplier for sensitivity
+            //obj.vy += accelY * 2; // Invert Y to match screen orientation
         }
     });
 }
