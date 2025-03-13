@@ -74,17 +74,17 @@ function applyShakeEffect() {
 
 // Request permission for motion data (iOS-specific)
 function requestMotionPermission() {
-    if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
-        DeviceMotionEvent.requestPermission()
-            .then(response => {
-                if (response === "granted") {
-                    window.addEventListener("devicemotion", handleMotion, detectShake);
-                }
-            })
-            .catch(console.error);
-    } else {
-        window.addEventListener("devicemotion", handleMotion, detectShake);
-    }
+    DeviceMotionEvent.requestPermission()
+        .then((response) => {
+            if (response === "granted") {
+                console.log("Motion permission granted");
+                window.addEventListener("devicemotion", handleMotion, detectShake);
+                document.getElementById('requestPermissionButton').style.display = 'none'; // Hide button after granting permission
+            } else {
+                console.log("Motion permission denied");
+            }
+        })
+        .catch((error) => console.error("Error requesting motion permission:", error));
 }
 
 // Handles motion data
@@ -112,6 +112,10 @@ function applyMotionToBeans() {
     });
 }
 
+// Function to detect if the device is iOS
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
 
 function darkenHexColor(hex, percent) {
     // Remove the '#' from the beginning if it's there
@@ -258,6 +262,14 @@ function init() {
     const canvas = document.getElementById('myCanvas');
     const context = canvas.getContext('2d');
     document.getElementById('spawnButton').addEventListener('click', spawnCircle);
+    // Only show the permission button if the device is iOS
+    if (isIOS() && typeof DeviceMotionEvent.requestPermission === "function") {
+        document.getElementById('requestPermissionButton').style.display = 'block';
+        document.getElementById('requestPermissionButton').addEventListener('click', requestMotionPermission);
+    } else {
+        // If not iOS, just start listening for motion events
+        window.addEventListener("devicemotion", handleMotion, detectShake);
+    }
     window.requestAnimationFrame(gameLoop);
 }
 
@@ -279,7 +291,7 @@ function gameLoop(timeStamp) {
     window.requestAnimationFrame(gameLoop);
 }
 
-window.addEventListener("load", requestMotionPermission);
+document.getElementById('requestPermissionButton').addEventListener('click', requestMotionPermission);
 
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
