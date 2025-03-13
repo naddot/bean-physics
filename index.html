@@ -17,30 +17,11 @@
     <!-- Button to spawn new circles -->
     <button id="spawnButton">Make bean</button>
 
-    <!-- Include your game logic script -->
-    <script src="physics.js"></script>
-    <!-- Shake notification -->
+    <!-- Shake notification (moved above physics.js) -->
     <div id="shakeMessage">Shake detected! Beans shaken!</div>
 
-
-    <script>
-        function resizeCanvas() {
-            const canvas = document.getElementById('myCanvas');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-
-        // Resize on load, window resize, and orientation change
-        window.addEventListener('load', resizeCanvas);
-        window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('orientationchange', resizeCanvas);
-
-        // Hide UI bars when interacting
-        document.body.addEventListener('click', () => {
-            window.scrollTo(0, 1);
-            resizeCanvas();
-        });
-    </script>
+    <!-- Include your game logic script -->
+    <script src="physics.js"></script>
 
 </body>
 </html>
