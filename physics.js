@@ -1,16 +1,14 @@
 let secondsPassed = 0;
 let oldTimeStamp = 0;
 let gameObjects = [];
-const g = 9.81*10; // Gravitational acceleration
-let mouseX = 0;
-let mouseY = 0;
+const g = 9.81 * 10; // Gravitational acceleration
+let mouseX = 0, mouseY = 0;
 const mouseMass = 700;
-let mouseVX = 1;
-let mouseVY = 1;
+let mouseVX = 1, mouseVY = 1;
 const mouseRadius = 50; // Invisible radius for interaction
 let mouseActive = false;
 let accelX = 0, accelY = 0, accelZ = 0;
-let lastAccelX = 0, lastAccelY = 0;
+let lastAccelX = 0, lastAccelY = 0, lastAccelZ = 0;
 let smoothingFactor = 0.8; // Adjust for smoother movement
 let lastShakeTime = 0; // Prevents repeated shakes
 const shakeThreshold = 15; // Adjust sensitivity (higher = harder shake)
@@ -24,17 +22,17 @@ const canvas = document.getElementById('myCanvas');
 const ctx = canvas.getContext('2d');
 
 function resizeCanvas() {
-    const canvas = document.getElementById("myCanvas");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-}
+}}
 
 function detectShake(event) {
     if (!event.accelerationIncludingGravity) return;
 
-    let accelX = event.accelerationIncludingGravity.x;
-    let accelY = event.accelerationIncludingGravity.y;
-    let accelZ = event.accelerationIncludingGravity.z;
+    // Update global variables instead of redeclaring them
+    accelX = event.accelerationIncludingGravity.x;
+    accelY = event.accelerationIncludingGravity.y;
+    accelZ = event.accelerationIncludingGravity.z;
 
     // Calculate change in acceleration (difference between frames)
     let deltaX = Math.abs(accelX - lastAccelX);
@@ -69,15 +67,19 @@ function applyShakeEffect() {
             obj.vy += (Math.random() - 0.5) * 400;
         }
     });
-    console.log("Shake detected! Beans shaken!");
-    // Show shake message
-    let shakeMessage = document.getElementById("shakeMessage");
-    shakeMessage.style.opacity = "1";
 
-    // Hide message after 2 seconds
-    setTimeout(() => {
-        shakeMessage.style.opacity = "0";
-    }, 2000);
+    console.log("Shake detected! Beans shaken!");
+
+    // Show shake message if it exists
+    let shakeMessage = document.getElementById("shakeMessage");
+    if (shakeMessage) {
+        shakeMessage.style.opacity = "1";
+
+        // Hide message after 2 seconds
+        setTimeout(() => {
+            shakeMessage.style.opacity = "0";
+        }, 2000);
+    }
 }
 
 // Modify motion event listener to detect shakes
@@ -172,12 +174,9 @@ canvas.addEventListener("mousemove", (event) => {
     }
 });
 
-
-// Resize the canvas when the window resizes
-window.addEventListener('resize', () => {
-    resizeCanvas();
-    // Optionally, reinitialize or reposition objects if needed
-});
+// Run on load and resize
+window.addEventListener("load", resizeCanvas);
+window.addEventListener("resize", resizeCanvas);
 
 class GameObject {
     constructor(context, x, y, vx, vy, mass, angle, angularVelocity) {
@@ -266,8 +265,6 @@ class Circle extends GameObject {
 window.onload = init;
 
 function init() {
-    const canvas = document.getElementById('myCanvas');
-    const context = canvas.getContext('2d');
     document.getElementById('spawnButton').addEventListener('click', spawnCircle);
     window.requestAnimationFrame(gameLoop);
 }
@@ -279,11 +276,11 @@ function gameLoop(timeStamp) {
     oldTimeStamp = timeStamp;
     
     clearCanvas();
-    applyMotionToBeans(); // Update v
-    gameObjects.forEach(obj => obj.update(secondsPassed));
+    gameObjects.forEach(obj => obj.update(secondsPassed)); // Update objects first
+    applyMotionToBeans(); // Then apply motion effect
     detectCollisions();
     detectEdgeCollisions();
-     detectMouseCollisions();
+    detectMouseCollisions();
     gameObjects.forEach(obj => obj.draw());
     drawStats();
 
