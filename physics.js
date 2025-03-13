@@ -222,6 +222,9 @@ function detectMouseCollisions() {
         let dy = obj.y - mouseY;
         let distance = Math.sqrt(dx * dx + dy * dy);
         if (distance <= obj.radius + mouseRadius) {
+            let overlap = obj.radius + mouseRadius - distance;
+            obj.x += (overlap / 2) * (dx / distance);
+            obj.y += (overlap / 2) * (dy / distance);
             resolveCollision(obj, { x: mouseX, y: mouseY, vx: mouseVX, vy: mouseVY, mass: mouseMass });
         }
     });
@@ -292,21 +295,21 @@ function circleIntersect(x1, y1, r1, x2, y2, r2) {
 }
 
 function resolveCollision(obj1, obj2) {
-    let vCollision = { x: obj2.x - obj1.x, y: obj2.y - obj1.y };
-    let distance = Math.sqrt(vCollision.x ** 2 + vCollision.y ** 2);
+    let normal = { x: obj2.x - obj1.x, y: obj2.y - obj1.y };
+    let distance = Math.sqrt(normal.x ** 2 + normal.y ** 2);
     if (distance === 0) return;
 
-    let vCollisionNorm = { x: vCollision.x / distance, y: vCollision.y / distance };
-    let vRelativeVelocity = { x: obj1.vx - obj2.vx, y: obj1.vy - obj2.vy };
-    let speed = vRelativeVelocity.x * vCollisionNorm.x + vRelativeVelocity.y * vCollisionNorm.y;
-    if (speed < 0) return;
+    let unitNormal = { x: normal.x / distance, y: normal.y / distance };
+    let relativeVelocity = { x: obj1.vx - obj2.vx, y: obj1.vy - obj2.vy };
+    let speed = relativeVelocity.x * unitNormal.x + relativeVelocity.y * unitNormal.y;
+    if (speed > 0) return;
 
     let impulse = (2 * speed) / (obj1.mass + obj2.mass);
-    obj1.vx -= impulse * obj2.mass * vCollisionNorm.x;
-    obj1.vy -= impulse * obj2.mass * vCollisionNorm.y;
+    obj1.vx -= impulse * obj2.mass * unitNormal.x;
+    obj1.vy -= impulse * obj2.mass * unitNormal.y;
     if (obj2.mass !== mouseMass) {
-        obj2.vx += impulse * obj1.mass * vCollisionNorm.x;
-        obj2.vy += impulse * obj1.mass * vCollisionNorm.y;
+        obj2.vx += impulse * obj1.mass * unitNormal.x;
+        obj2.vy += impulse * obj1.mass * unitNormal.y;
     }
 }
 // Spawning logic
