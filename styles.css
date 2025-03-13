@@ -13,12 +13,14 @@ body {
     align-items: center;
     flex-direction: column;
     width: 100vw;
-    height: 100dvh; /* Uses dynamic viewport height to fix mobile issues */
+    height: 100dvh; /* Keeps it fullscreen */
     background: #f4f4f9;
-    overflow: hidden;
+    overflow: hidden; /* Prevents scrolling */
     position: relative;
-    touch-action: none; /* Prevents zooming & scrolling */
+    touch-action: pan-down; /* Allows pull-to-refresh but no zooming */
+    overscroll-behavior-y: contain; /* Allows pull-to-refresh without scrolling */
 }
+
 
 /* Full-screen responsive canvas */
 canvas {
