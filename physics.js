@@ -8,6 +8,7 @@ const mouseMass = 700;
 let mouseVX = 1;
 let mouseVY = 1;
 const mouseRadius = 50; // Invisible radius for interaction
+let mouseActive = false;
 
 // Set a restitution, a lower value will lose more energy when colliding
 const restitution = 0.90;
@@ -48,13 +49,51 @@ function darkenHexColor(hex, percent) {
 // Run on load and resize
 window.addEventListener("load", resizeCanvas);
 window.addEventListener("resize", resizeCanvas);
-canvas.addEventListener("mousemove", (event) => {
-    mouseVX = 1+(event.clientX - mouseX)**2;
-    mouseVY = 1+(event.clientY - mouseY)**2;
+// Mouse event listeners
+canvas.addEventListener("mousedown", (event) => {
+    mouseActive = true;
     mouseX = event.clientX;
     mouseY = event.clientY;
+    mouseVX = 0;
+    mouseVY = 0;
 });
 
+canvas.addEventListener("mouseup", () => {
+    mouseActive = false;
+});
+
+canvas.addEventListener("mousemove", (event) => {
+    if (mouseActive) {
+        mouseVX = event.clientX - mouseX;
+        mouseVY = event.clientY - mouseY;
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+    }
+});
+
+// Touch event listeners for mobile
+canvas.addEventListener("touchstart", (event) => {
+    mouseActive = true;
+    let touch = event.touches[0];
+    mouseX = touch.clientX;
+    mouseY = touch.clientY;
+    mouseVX = 0;
+    mouseVY = 0;
+});
+
+canvas.addEventListener("touchmove", (event) => {
+    if (mouseActive) {
+        let touch = event.touches[0];
+        mouseVX = touch.clientX - mouseX;
+        mouseVY = touch.clientY - mouseY;
+        mouseX = touch.clientX;
+        mouseY = touch.clientY;
+    }
+});
+
+canvas.addEventListener("touchend", () => {
+    mouseActive = false;
+});
 
 // Resize the canvas when the window resizes
 window.addEventListener('resize', () => {
@@ -177,6 +216,7 @@ function clearCanvas() {
 }
 
 function detectMouseCollisions() {
+    if (!mouseActive) return;
     gameObjects.forEach(obj => {
         let dx = obj.x - mouseX;
         let dy = obj.y - mouseY;
