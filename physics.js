@@ -295,40 +295,32 @@ function circleIntersect(x1, y1, r1, x2, y2, r2) {
 }
 
 function resolveCollision(obj1, obj2) {
-    let normal = { x: obj2.x - obj1.x, y: obj2.y - obj1.y };
-    let distance = Math.sqrt(normal.x ** 2 + normal.y ** 2);
+    let vCollision = { x: obj2.x - obj1.x, y: obj2.y - obj1.y };
+    let distance = Math.sqrt(vCollision.x ** 2 + vCollision.y ** 2);
     if (distance === 0) return;
 
-    let overlap = (obj1.radius + obj2.radius) - distance;
-    if (overlap > 0) {
-        obj1.x -= (overlap / 2) * (normal.x / distance);
-        obj1.y -= (overlap / 2) * (normal.y / distance);
-        obj2.x += (overlap / 2) * (normal.x / distance);
-        obj2.y += (overlap / 2) * (normal.y / distance);
-    }
-
-    let unitNormal = { x: normal.x / distance, y: normal.y / distance };
-    let relativeVelocity = { x: obj1.vx - obj2.vx, y: obj1.vy - obj2.vy };
-    let speed = relativeVelocity.x * unitNormal.x + relativeVelocity.y * unitNormal.y;
+    let vCollisionNorm = { x: vCollision.x / distance, y: vCollision.y / distance };
+    let vRelativeVelocity = { x: obj1.vx - obj2.vx, y: obj1.vy - obj2.vy };
+    let speed = vRelativeVelocity.x * vCollisionNorm.x + vRelativeVelocity.y * vCollisionNorm.y;
     if (speed < 0) return;
 
-    let impulse = (2 * speed * restitution) / (obj1.mass + obj2.mass);
-    let force = Math.abs(impulse * obj2.mass);
-    obj1.totalForce += force;
-    obj2.totalForce += force;
-    obj1.updateColorBasedOnForce();
-    obj2.updateColorBasedOnForce();
+    let impulse = (2 * speed) / (obj1.mass + obj2.mass);
 
-    obj1.vx -= impulse * obj2.mass * unitNormal.x;
-    obj1.vy -= impulse * obj2.mass * unitNormal.y;
-    obj1.vx *= restitution;
-    obj1.vy *= restitution;
+    // Calculate the force for both objects based on the impulse
+    let force1 = impulse * obj2.mass;
+    // Add the calculated force to the totalForce property of each circle
+    obj1.totalForce += force1;
+    // Update the color based on the new totalForce
+    obj1.updateColorBasedOnForce();
+    obj1.vx -= impulse * obj2.mass * vCollisionNorm.x;
+    obj1.vy -= impulse * obj2.mass * vCollisionNorm.y;
     
     if (obj2.mass !== mouseMass) {
-        obj2.vx += impulse * obj1.mass * unitNormal.x;
-        obj2.vy += impulse * obj1.mass * unitNormal.y;
-        obj2.vx *= restitution;
-        obj2.vy *= restitution;
+        let force2 = impulse * obj1.mass;
+        obj2.vx += impulse * obj1.mass * vCollisionNorm.x;
+        obj2.vy += impulse * obj1.mass * vCollisionNorm.y;
+        obj2.totalForce += force2;
+        obj2.updateColorBasedOnForce();
     }
 }
 // Spawning logic
