@@ -70,6 +70,14 @@ function applyShakeEffect() {
         }
     });
     console.log("Shake detected! Beans shaken!");
+    // Show shake message
+    let shakeMessage = document.getElementById("shakeMessage");
+    shakeMessage.style.opacity = "1";
+
+    // Hide message after 2 seconds
+    setTimeout(() => {
+        shakeMessage.style.opacity = "0";
+    }, 2000);
 }
 
 // Modify motion event listener to detect shakes
@@ -282,7 +290,7 @@ function gameLoop(timeStamp) {
     window.requestAnimationFrame(gameLoop);
 }
 
-window.addEventListener("load", requestMotionPermission);
+//window.addEventListener("load", requestMotionPermission);
 
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
