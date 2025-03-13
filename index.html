@@ -17,16 +17,27 @@
     <!-- Button to spawn new circles -->
     <button id="spawnButton">Make bean</button>
 
-    <!-- Shake notification -->
-    <div id="shakeMessage">Shake detected! Beans shaken!</div>
-
-    <!-- Fix: Add a button to request motion permission on iOS -->
-    <button id="motionPermissionButton" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); padding: 10px; display: none;">
-        Enable Motion
-    </button>
-
     <!-- Include your game logic script -->
     <script src="physics.js"></script>
+
+    <script>
+        function resizeCanvas() {
+            const canvas = document.getElementById('myCanvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        // Resize on load, window resize, and orientation change
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', resizeCanvas);
+
+        // Hide UI bars when interacting
+        document.body.addEventListener('click', () => {
+            window.scrollTo(0, 1);
+            resizeCanvas();
+        });
+    </script>
 
 </body>
 </html>
