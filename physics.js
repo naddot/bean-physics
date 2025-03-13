@@ -310,7 +310,7 @@ function resolveCollision(obj1, obj2) {
     let unitNormal = { x: normal.x / distance, y: normal.y / distance };
     let relativeVelocity = { x: obj1.vx - obj2.vx, y: obj1.vy - obj2.vy };
     let speed = relativeVelocity.x * unitNormal.x + relativeVelocity.y * unitNormal.y;
-    if (speed > 0) return;
+    if (speed < 0) return;
 
     let impulse = (2 * speed * restitution) / (obj1.mass + obj2.mass);
     let force = Math.abs(impulse * obj2.mass);
