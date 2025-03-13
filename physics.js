@@ -299,29 +299,36 @@ function resolveCollision(obj1, obj2) {
     let distance = Math.sqrt(normal.x ** 2 + normal.y ** 2);
     if (distance === 0) return;
 
+    let overlap = (obj1.radius + obj2.radius) - distance;
+    if (overlap > 0) {
+        obj1.x -= (overlap / 2) * (normal.x / distance);
+        obj1.y -= (overlap / 2) * (normal.y / distance);
+        obj2.x += (overlap / 2) * (normal.x / distance);
+        obj2.y += (overlap / 2) * (normal.y / distance);
+    }
+
     let unitNormal = { x: normal.x / distance, y: normal.y / distance };
     let relativeVelocity = { x: obj1.vx - obj2.vx, y: obj1.vy - obj2.vy };
     let speed = relativeVelocity.x * unitNormal.x + relativeVelocity.y * unitNormal.y;
     if (speed > 0) return;
 
     let impulse = (2 * speed * restitution) / (obj1.mass + obj2.mass);
+    let force = Math.abs(impulse * obj2.mass);
+    obj1.totalForce += force;
+    obj2.totalForce += force;
+    obj1.updateColorBasedOnForce();
+    obj2.updateColorBasedOnForce();
+
     obj1.vx -= impulse * obj2.mass * unitNormal.x;
     obj1.vy -= impulse * obj2.mass * unitNormal.y;
     obj1.vx *= restitution;
     obj1.vy *= restitution;
-    
-    let force = Math.abs(impulse * obj2.mass); // Compute force applied
-    obj1.totalForce += force;
-    obj1.updateColorBasedOnForce();
     
     if (obj2.mass !== mouseMass) {
         obj2.vx += impulse * obj1.mass * unitNormal.x;
         obj2.vy += impulse * obj1.mass * unitNormal.y;
         obj2.vx *= restitution;
         obj2.vy *= restitution;
-        obj2.totalForce += force;
-        obj2.updateColorBasedOnForce();
-        
     }
 }
 // Spawning logic
