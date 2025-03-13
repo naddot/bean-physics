@@ -250,6 +250,8 @@ function drawStats() {
     ctx.fillText(`Average Force: ${avgForce.toFixed(2)}`, 10, 40);
     ctx.fillText(`Force Deviation: ${forceDeviation.toFixed(2)}`, 10, 60);
     ctx.fillText(`Mouse Position: (${mouseX}, ${mouseY})`, 10, 80);
+    ctx.fillText(`Accel X: ${accelX.toFixed(2)}`, 10, 40);
+    ctx.fillText(`Accel Y: ${accelY.toFixed(2)}`, 10, 60);
 }
 
 function detectMouseCollisions() {
