@@ -314,12 +314,12 @@ function resolveCollision(obj1, obj2) {
     obj1.totalForce += force1;
     // Update the color based on the new totalForce
     obj1.updateColorBasedOnForce();
-    obj1.vx += impulse * obj2.mass * vCollisionNorm.x;
-    obj1.vy += impulse * obj2.mass * vCollisionNorm.y;
-
-    if (obj2.mass !== mouseMass) {
-     obj1.vx -= impulse * obj2.mass * vCollisionNorm.x;
+    obj1.vx -= impulse * obj2.mass * vCollisionNorm.x;
     obj1.vy -= impulse * obj2.mass * vCollisionNorm.y;
+
+    if (obj2.mass == mouseMass) {
+     obj1.vx = obj1.vx**2;
+    obj1.vy = obj1.vy**2;
     }
     
     if (obj2.mass !== mouseMass) {
