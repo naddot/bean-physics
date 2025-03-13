@@ -301,7 +301,7 @@ function drawStats() {
     ctx.fillText(`Force Deviation: ${forceDeviation.toFixed(2)}`, 10, 60);
     ctx.fillText(`Accel X: ${accelX.toFixed(2)}`, 10, 80);
     ctx.fillText(`Accel Y: ${accelY.toFixed(2)}`, 10, 100);
-    ctx.fillText(`Accel Y: ${lastShakeTime}`, 10, 120);
+    ctx.fillText(`Last shake time: ${lastShakeTime}`, 10, 120);
 }
 
 function detectMouseCollisions() {
