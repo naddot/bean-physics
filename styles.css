@@ -29,6 +29,27 @@ canvas {
     top: 0;
     left: 0;
 }
+/* Permission button styling */
+#requestPermissionButton {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    background: #007AFF; /* iOS-style blue */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    z-index: 10; /* Keeps it above the canvas */
+    display: none; /* Hidden by default */
+}
+
+#requestPermissionButton:hover {
+    background: #005EC2;
+}
 
 /* Button positioning and styling */
 #spawnButton {
