@@ -106,7 +106,7 @@ function handleMotion(event) {
 function applyMotionToBeans() {
     gameObjects.forEach(obj => {
         if (obj instanceof Circle) {
-            obj.vx += (isIOS() ? -accelX : accelX) * 2; // Reverse X-axis for iOS if needed
+            obj.vx -= (isIOS() ? +accelX : accelX) * 2; // Reverse X-axis for iOS if needed
             obj.vy += (isIOS() ? -accelY : accelY) * 2; // Reverse Y-axis for iOS
         }
     });
