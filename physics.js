@@ -4,6 +4,9 @@ let gameObjects = [];
 const g = 9.81*10; // Gravitational acceleration
 let mouseX = 0;
 let mouseY = 0;
+const mouseMass = 5000;
+let mouseVX = 0;
+let mouseVY = 0;
 
 // Set a restitution, a lower value will lose more energy when colliding
 const restitution = 0.90;
@@ -45,6 +48,8 @@ function darkenHexColor(hex, percent) {
 window.addEventListener("load", resizeCanvas);
 window.addEventListener("resize", resizeCanvas);
 canvas.addEventListener("mousemove", (event) => {
+    mouseVX = event.clientX - mouseX;
+    mouseVY = event.clientY - mouseY;
     mouseX = event.clientX;
     mouseY = event.clientY;
 });
@@ -159,6 +164,7 @@ function gameLoop(timeStamp) {
     gameObjects.forEach(obj => obj.update(secondsPassed));
     detectCollisions();
     detectEdgeCollisions();
+     detectMouseCollisions();
     gameObjects.forEach(obj => obj.draw());
     drawStats();
 
@@ -167,6 +173,17 @@ function gameLoop(timeStamp) {
 
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function detectMouseCollisions() {
+    gameObjects.forEach(obj => {
+        let dx = obj.x - mouseX;
+        let dy = obj.y - mouseY;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance <= obj.radius) {
+            resolveCollision(obj, { x: mouseX, y: mouseY, vx: mouseVX, vy: mouseVY, mass: mouseMass });
+        }
+    });
 }
 
 function drawStats() {
