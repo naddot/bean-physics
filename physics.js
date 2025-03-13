@@ -13,7 +13,7 @@ let accelX = 0, accelY = 0, accelZ = 0;
 let lastAccelX = 0, lastAccelY = 0;
 let smoothingFactor = 0.8; // Adjust for smoother movement
 let lastShakeTime = 0; // Prevents repeated shakes
-const shakeThreshold = 15; // Adjust sensitivity (higher = harder shake)
+const shakeThreshold = 5; // Adjust sensitivity (higher = harder shake)
 const shakeCooldown = 1000; // 1 second cooldown between shakes
 
 // Set a restitution, a lower value will lose more energy when colliding
@@ -109,8 +109,8 @@ function handleMotion(event) {
 function applyMotionToBeans() {
     gameObjects.forEach(obj => {
         if (obj instanceof Circle) {
-            obj.vx += accelX * 2; // Adjust multiplier for sensitivity
-            obj.vy -= accelY * 2; // Invert Y to match screen orientation
+            obj.vx -= accelX * 2; // Adjust multiplier for sensitivity
+            obj.vy += accelY * 2; // Invert Y to match screen orientation
         }
     });
 }
