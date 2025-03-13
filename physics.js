@@ -107,6 +107,7 @@ function applyMotionToBeans() {
     gameObjects.forEach(obj => {
         if (obj instanceof Circle) {
             obj.vx -= accelX * 2; // Adjust multiplier for sensitivity
+            obj.vy += (isIOS ? -accelY : accelY) * 2; // Reverse Y-axis for iOS
             obj.vy += accelY * 2; // Invert Y to match screen orientation
         }
     });
