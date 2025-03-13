@@ -30,11 +30,11 @@ function resizeCanvas() {
 }
 
 function detectShake(event) {
-    if (!event.accelerationIncludingGravity) return;
+    if (!event.acceleration) return;
 
-    let accelX = event.accelerationIncludingGravity.x;
-    let accelY = event.accelerationIncludingGravity.y;
-    let accelZ = event.accelerationIncludingGravity.z;
+    let accelX = event.acceleration.x;
+    let accelY = event.acceleration.y;
+    let accelZ = event.acceleration.z;
 
     // Calculate change in acceleration (difference between frames)
     let deltaX = Math.abs(accelX - lastAccelX);
