@@ -155,17 +155,32 @@ function gameLoop(timeStamp) {
 
     detectCollisions();
     detectEdgeCollisions();  // Add this line to check for edge collisions
+    
     clearCanvas();
-
+    
     for (let obj of gameObjects) {
         obj.draw();
     }
-
+    
     window.requestAnimationFrame(gameLoop);
+    
 }
 
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawstats() {
+    let totalObjects = gameObjects.length;
+    let totalForce = gameObjects.reduce((sum, obj) => sum + totalForce, 0);
+    let avgForce = totalObjects > 0 ? totalForce / totalObjects : 0;
+    let forceDeviation = Math.sqrt(gameObjects.reduce((sum, obj) => sum + Math.pow(obj.totalForce - avgForce, 2), 0 ) / totalObjects || 0);
+
+    ctx.fillStyle = 'white';
+    ctx.font = '16px Arial';
+    ctx.fillText(`Total Objects: ${totalObjects}`, 10, 20);
+    ctx.fillText(`Average Force: ${avgForce.toFixed(2)}`, 10, 40);
+    ctx.fillText(`Force Deviation: ${forceDeviation.toFixed(2)}`, 10, 60);
 }
 
 function detectCollisions() {
