@@ -359,7 +359,7 @@ function detectEdgeCollisions() {
             obj.vy = Math.abs(obj.vy) * restitution;
             obj.y = obj.radius;
         } else if (obj.y > canvas.height - obj.radius - floorBuffer) {
-            obj.vy = -Math.abs(obj.vy) * restitution*2;
+            obj.vy = -Math.abs(obj.vy) * restitution;
             obj.y = canvas.height - obj.radius- floorBuffer;
         }
     }
