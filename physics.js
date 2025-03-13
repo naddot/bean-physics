@@ -271,7 +271,7 @@ function gameLoop(timeStamp) {
     oldTimeStamp = timeStamp;
     
     clearCanvas();
-    applyMotionToBeans(); // Update v
+    //applyMotionToBeans(); // Update v
     gameObjects.forEach(obj => obj.update(secondsPassed));
     detectCollisions();
     detectEdgeCollisions();
