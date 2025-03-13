@@ -17,7 +17,7 @@ const shakeThreshold = 5; // Adjust sensitivity (higher = harder shake)
 const shakeCooldown = 1000; // 1 second cooldown between shakes
 
 // Set a restitution, a lower value will lose more energy when colliding
-const restitution = 0.60;
+const restitution = 0.80;
 
 // Select the canvas and get the context
 const canvas = document.getElementById('myCanvas');
