@@ -232,6 +232,8 @@ function gameLoop(timeStamp) {
     window.requestAnimationFrame(gameLoop);
 }
 
+window.addEventListener("load", requestMotionPermission);
+
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
