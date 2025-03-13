@@ -304,12 +304,24 @@ function resolveCollision(obj1, obj2) {
     let speed = relativeVelocity.x * unitNormal.x + relativeVelocity.y * unitNormal.y;
     if (speed > 0) return;
 
-    let impulse = (2 * speed) / (obj1.mass + obj2.mass);
+    let impulse = (2 * speed * restitution) / (obj1.mass + obj2.mass);
     obj1.vx -= impulse * obj2.mass * unitNormal.x;
     obj1.vy -= impulse * obj2.mass * unitNormal.y;
+    obj1.vx *= restitution;
+    obj1.vy *= restitution;
+    
+    let force = Math.abs(impulse * obj2.mass); // Compute force applied
+    obj1.totalForce += force;
+    obj1.updateColorBasedOnForce();
+    
     if (obj2.mass !== mouseMass) {
         obj2.vx += impulse * obj1.mass * unitNormal.x;
         obj2.vy += impulse * obj1.mass * unitNormal.y;
+        obj2.vx *= restitution;
+        obj2.vy *= restitution;
+        obj2.totalForce += force;
+        obj2.updateColorBasedOnForce();
+        
     }
 }
 // Spawning logic
