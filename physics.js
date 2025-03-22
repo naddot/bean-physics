@@ -438,16 +438,6 @@ function resolveCollision(obj1, obj2) {
      } else if (isObj2Resting && obj1.vy > 0) {
          obj2.vy -= bounceBoost;
      }
-
-    // Push objects apart to prevent overlap
-    let overlap = (obj1.radius + obj2.radius) - distance;
-    if (overlap > 0) {
-        let correction = overlap / 2;
-        obj1.x -= correction * vCollisionNorm.x;
-        obj1.y -= correction * vCollisionNorm.y;
-        obj2.x += correction * vCollisionNorm.x;
-        obj2.y += correction * vCollisionNorm.y;
-    }
 }
 
 // Spawning logic
