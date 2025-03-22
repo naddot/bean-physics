@@ -452,7 +452,7 @@ function resolveCollision(obj1, obj2) {
 
 // Spawning logic
 function spawnCircle() {
-    const visualRadius = 10; // Random radius between 10 and 40
+    const visualRadius = 20; // Random radius between 10 and 40
     const hitboxRadius = visualRadius * 0.8; // Slightly smaller hitbox for better alignment with bean shape
     const x = Math.random() * (canvas.width - 2 * hitboxRadius) + hitboxRadius; // Random X within canvas
     const y = Math.random() * (canvas.height - 2 * hitboxRadius) + hitboxRadius; // Random Y within canvas
