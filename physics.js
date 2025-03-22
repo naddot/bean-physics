@@ -55,11 +55,24 @@ const CanvasManager = {
 const MotionManager = {
     handleMotion(event) {
         if (event.accelerationIncludingGravity) {
-            let { x: rawX, y: rawY } = event.accelerationIncludingGravity;
-            motion.accelX = motion.smoothingFactor * motion.lastAccelX + (1 - motion.smoothingFactor) * rawX;
-            motion.accelY = motion.smoothingFactor * motion.lastAccelY + (1 - motion.smoothingFactor) * rawY;
+            let { x: rawX, y: rawY, z: rawZ } = event.accelerationIncludingGravity;
+            
+            // Apply adaptive smoothing - less smoothing for rapid changes, more for subtle ones
+            const adaptiveSmoothingX = Math.min(0.9, Math.max(0.5, motion.smoothingFactor - Math.abs(rawX - motion.lastAccelX) * 0.05));
+            const adaptiveSmoothingY = Math.min(0.9, Math.max(0.5, motion.smoothingFactor - Math.abs(rawY - motion.lastAccelY) * 0.05));
+            
+            motion.accelX = adaptiveSmoothingX * motion.lastAccelX + (1 - adaptiveSmoothingX) * rawX;
+            motion.accelY = adaptiveSmoothingY * motion.lastAccelY + (1 - adaptiveSmoothingY) * rawY;
+            motion.accelZ = motion.smoothingFactor * motion.lastAccelZ + (1 - motion.smoothingFactor) * rawZ;
+            
             motion.lastAccelX = motion.accelX;
             motion.lastAccelY = motion.accelY;
+            motion.lastAccelZ = motion.accelZ;
+            
+            if (GameState.debug.enabled) {
+                console.log(`Raw accel: X=${rawX.toFixed(2)}, Y=${rawY.toFixed(2)}, Z=${rawZ.toFixed(2)}`);
+                console.log(`Smoothed accel: X=${motion.accelX.toFixed(2)}, Y=${motion.accelY.toFixed(2)}, Z=${motion.accelZ.toFixed(2)}`);
+            }
         }
     },
 
@@ -83,10 +96,39 @@ const MotionManager = {
 
     applyMotionToBeans() {
         const ios = isIOS();
+        const tiltFactor = 3.0; // Increased tilt sensitivity
+        const maxTiltForce = 15; // Maximum force applied by tilting
+        const massScaling = true; // Whether to scale tilt effect by mass
+        
         GameState.gameObjects.forEach(obj => {
             if (obj instanceof Circle) {
-                obj.vx -= (ios ? -motion.accelX : motion.accelX) * 2;
-                obj.vy += (ios ? -motion.accelY : motion.accelY) * 2;
+                // Calculate tilt force with mass consideration
+                let tiltForceX = (ios ? -motion.accelX : motion.accelX) * tiltFactor;
+                let tiltForceY = (ios ? -motion.accelY : motion.accelY) * tiltFactor;
+                
+                // Apply mass scaling if enabled (heavier objects respond less to tilt)
+                if (massScaling) {
+                    const massEffect = Math.max(0.5, Math.min(1.5, 1000 / obj.mass));
+                    tiltForceX *= massEffect;
+                    tiltForceY *= massEffect;
+                }
+                
+                // Limit maximum tilt force
+                tiltForceX = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceX));
+                tiltForceY = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceY));
+                
+                // Apply forces with realistic acceleration
+                obj.vx += tiltForceX * GameState.secondsPassed;
+                obj.vy += tiltForceY * GameState.secondsPassed;
+                
+                // Apply air resistance (more for faster objects)
+                const speed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
+                const airResistance = 0.01 + (speed * 0.001); // Progressive air resistance
+                
+                if (speed > 0.1) {
+                    obj.vx *= (1 - airResistance * GameState.secondsPassed);
+                    obj.vy *= (1 - airResistance * GameState.secondsPassed);
+                }
             }
         });
     }
@@ -195,6 +237,11 @@ class Circle extends GameObject {
 
         this.color = this.startingColors[Math.floor(Math.random() * this.startingColors.length)];
         this.darkerColor = darkenHexColor(this.color, 20);
+        
+        // Animation properties
+        this.scale = 1.0;
+        this.targetScale = 1.0;
+        this.birthTime = Date.now();
     }
 
     // Update color based on the total force and defined thresholds
@@ -212,14 +259,25 @@ class Circle extends GameObject {
             this.darkerColor = darkenHexColor(this.color, 20);
         }
     }
-
     draw() {
+        // Update scale for pop-in animation
+        if (this.scale < this.targetScale) {
+            // Smooth animation over 300ms
+            const animationDuration = 300;
+            const elapsedTime = Date.now() - this.birthTime;
+            const progress = Math.min(1, elapsedTime / animationDuration);
+            
+            // Ease-out function for smoother animation
+            this.scale = this.targetScale * (1 - Math.pow(1 - progress, 3));
+        }
+        
         this.context.save();
         this.context.translate(this.x, this.y);
         this.context.rotate(this.angle);
 
+        // Apply scale for pop-in effect
         const baseRadius = 12; // Based on visual center of bean SVG
-        const scale = this.radius / baseRadius;
+        const scale = this.radius / baseRadius * this.scale;
         this.context.scale(scale, scale);
         this.context.translate(-baseRadius, -baseRadius); // Center the bean shape around its center
 
@@ -247,14 +305,57 @@ class Circle extends GameObject {
 
         this.context.restore();
     }
-    
 
-        update() {
-            this.vy += g * GameState.secondsPassed;
-            this.x += this.vx * GameState.secondsPassed;
-            this.y += this.vy * GameState.secondsPassed;
-            this.angle += this.angularVelocity * GameState.secondsPassed;
+    update() {
+        // Apply gravity
+        this.vy += g * GameState.secondsPassed;
+        
+        // Apply air resistance (more realistic for faster objects)
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        if (speed > 0.1) {
+            const airDrag = 0.02 + (speed * 0.0005); // Progressive air resistance
+            this.vx *= (1 - airDrag * GameState.secondsPassed);
+            this.vy *= (1 - airDrag * GameState.secondsPassed);
         }
+        
+        // Update position
+        this.x += this.vx * GameState.secondsPassed;
+        this.y += this.vy * GameState.secondsPassed;
+        
+        // Update rotation with more realistic angular physics
+        // Angular velocity changes based on linear velocity (rolling effect)
+        const rollingEffect = 0.05;
+        if (Math.abs(this.vx) > 1) {
+            // Beans roll in the direction they're moving
+            const targetAngularVelocity = -this.vx / (this.radius * 2) * rollingEffect;
+            // Gradually adjust angular velocity toward target
+            this.angularVelocity += (targetAngularVelocity - this.angularVelocity) * 0.1;
+        }
+        
+        // Apply angular damping
+        this.angularVelocity *= (1 - 0.05 * GameState.secondsPassed);
+        
+        // Update angle
+        this.angle += this.angularVelocity * GameState.secondsPassed;
+        
+        // Limit maximum speed to prevent physics issues
+        const maxSpeed = 1000;
+        if (speed > maxSpeed) {
+            const scaleFactor = maxSpeed / speed;
+            this.vx *= scaleFactor;
+            this.vy *= scaleFactor;
+        }
+        
+        // Update scale for pop-in animation
+        if (this.scale < this.targetScale) {
+            const animationDuration = 300; // ms
+            const elapsedTime = Date.now() - this.birthTime;
+            const progress = Math.min(1, elapsedTime / animationDuration);
+            
+            // Ease-out function for smoother animation
+            this.scale = this.targetScale * (1 - Math.pow(1 - progress, 3));
+        }
+    }
 }     
 
 
@@ -382,37 +483,86 @@ function detectCollisions() {
 
 function detectEdgeCollisions() {
     const floorBuffer = 10;
+    const wallRestitution = restitution * 0.9; // Slightly less bouncy walls for more realism
+    const floorFriction = 0.98; // Increased floor friction for more realistic movement
 
     GameState.gameObjects.forEach(obj => {
+        let collided = false;
+        
         // LEFT WALL
         if ((obj.x - obj.radius) <= 0) {
-            obj.vx = Math.abs(obj.vx) * restitution;
+            // Calculate impact velocity for more realistic bounce
+            const impactVelocity = Math.abs(obj.vx);
+            obj.vx = impactVelocity * wallRestitution;
             obj.x = obj.radius;
+            
+            // Add some vertical velocity variation for more natural bounces
+            obj.vy += (Math.random() - 0.5) * impactVelocity * 0.1;
+            
+            // Add angular velocity based on impact
+            obj.angularVelocity += impactVelocity * 0.01;
+            
+            collided = true;
         }
 
         // RIGHT WALL
         if ((obj.x + obj.radius) >= canvas.width) {
-            obj.vx = -Math.abs(obj.vx) * restitution;
+            const impactVelocity = Math.abs(obj.vx);
+            obj.vx = -impactVelocity * wallRestitution;
             obj.x = canvas.width - obj.radius;
+            
+            // Add some vertical velocity variation for more natural bounces
+            obj.vy += (Math.random() - 0.5) * impactVelocity * 0.1;
+            
+            // Add angular velocity based on impact
+            obj.angularVelocity -= impactVelocity * 0.01;
+            
+            collided = true;
         }
 
         // CEILING
         if ((obj.y - obj.radius) <= 0) {
-            obj.vy = Math.abs(obj.vy);
+            const impactVelocity = Math.abs(obj.vy);
+            obj.vy = impactVelocity * wallRestitution;
             obj.y = obj.radius;
+            
+            // Add some horizontal velocity variation for more natural bounces
+            obj.vx += (Math.random() - 0.5) * impactVelocity * 0.1;
+            
+            collided = true;
         }
 
         // FLOOR
         const floorY = canvas.height - obj.radius - floorBuffer;
         if ((obj.y + obj.radius) >= canvas.height - floorBuffer) {
-            obj.vy = -Math.abs(obj.vy);
+            const impactVelocity = Math.abs(obj.vy);
+            
+            // More realistic floor bounce with velocity-dependent restitution
+            // Harder impacts have less restitution (energy loss)
+            const dynamicRestitution = Math.max(0.3, restitution - (impactVelocity * 0.0005));
+            obj.vy = -impactVelocity * dynamicRestitution;
             obj.y = floorY;
 
             // Apply stronger horizontal friction ONLY on the floor
-            obj.vx *= 0.99;
-            obj.angularVelocity *= 0.99;
-            if (Math.abs(obj.vx) < 0.1) obj.vx = 0;
-            if (Math.abs(obj.vy) < 0.1) obj.vy = 0;
+            // Friction increases with impact velocity
+            const frictionFactor = Math.max(floorFriction, 1 - (impactVelocity * 0.0005));
+            obj.vx *= frictionFactor;
+            
+            // Apply rolling physics - beans roll in the direction they're moving
+            const rollingEffect = 0.2;
+            const targetAngularVelocity = -obj.vx / (obj.radius * 2) * rollingEffect;
+            obj.angularVelocity = obj.angularVelocity * 0.8 + targetAngularVelocity * 0.2;
+            
+            // Stop very slow movement
+            if (Math.abs(obj.vx) < 0.5) obj.vx = 0;
+            if (Math.abs(obj.vy) < 0.5) obj.vy = 0;
+            
+            collided = true;
+        }
+        
+        // Add a small "bump" effect when colliding with edges
+        if (collided && GameState.debug.enabled) {
+            obj.isColliding = true; // Highlight in debug mode
         }
         
         // Draw debug visualizations if enabled
@@ -472,60 +622,148 @@ function circleIntersect(x1, y1, r1, x2, y2, r2) {
 }
 
 function resolveCollision(obj1, obj2) {
+    // Calculate collision vector and distance
     let vCollision = { x: obj2.x - obj1.x, y: obj2.y - obj1.y };
     let distance = Math.sqrt(vCollision.x ** 2 + vCollision.y ** 2);
-    if (distance < minSeparation) return; // prevent sticking
+    
+    // Prevent objects from sticking together
+    if (distance < minSeparation) return;
 
+    // Normalize collision vector
     let vCollisionNorm = { x: vCollision.x / distance, y: vCollision.y / distance };
+    
+    // Calculate relative velocity
     let vRelativeVelocity = { x: obj1.vx - obj2.vx, y: obj1.vy - obj2.vy };
+    
+    // Calculate speed in the direction of the collision
     let speed = vRelativeVelocity.x * vCollisionNorm.x + vRelativeVelocity.y * vCollisionNorm.y;
+    
+    // If objects are moving away from each other, no collision response needed
     if (speed < 0) return;
 
-    let impulse = (2 * speed) / (obj1.mass + obj2.mass);
-
-    let force1 = impulse * obj2.mass;
-    obj1.totalForce += force1 * 0.25;
-    obj1.updateColorBasedOnForce();
-    obj1.vx -= impulse * obj2.mass * vCollisionNorm.x;
-    obj1.vy -= impulse * obj2.mass * vCollisionNorm.y;
-
+    // Calculate impulse scalar
+    let impulse = (2 * speed * restitution) / (obj1.mass + obj2.mass);
+    
+    // Calculate force for color change and apply impulse to velocities
     if (obj2.type === "mouse") {
-        obj1.vx = obj1.vx ** 2;
-        obj1.vy = obj1.vy ** 2;
-    }
-
-    if (obj2.type === "mouse") {
+        // Special case for mouse interactions
+        let force1 = impulse * obj2.mass * 2; // Increased force for mouse
+        obj1.totalForce += force1 * 0.25;
+        obj1.updateColorBasedOnForce();
+        
+        // Apply squared velocity for more dramatic mouse effect
+        obj1.vx = Math.sign(obj1.vx - impulse * obj2.mass * vCollisionNorm.x) * 
+                 Math.pow(Math.abs(obj1.vx - impulse * obj2.mass * vCollisionNorm.x), 1.2);
+        obj1.vy = Math.sign(obj1.vy - impulse * obj2.mass * vCollisionNorm.y) * 
+                 Math.pow(Math.abs(obj1.vy - impulse * obj2.mass * vCollisionNorm.y), 1.2);
+                 
+        // Add some random spin for more natural movement
+        obj1.angularVelocity += (Math.random() - 0.5) * 10;
+    } else {
+        // Normal object-to-object collision
+        let force1 = impulse * obj2.mass;
+        obj1.totalForce += force1 * 0.25;
+        obj1.updateColorBasedOnForce();
+        
+        // Apply impulse to velocity
+        obj1.vx -= impulse * obj2.mass * vCollisionNorm.x;
+        obj1.vy -= impulse * obj2.mass * vCollisionNorm.y;
+        
+        // Apply angular velocity change based on collision point
+        // This creates a more realistic rotation effect during collisions
+        const tangentVelocity = vRelativeVelocity.x * -vCollisionNorm.y + vRelativeVelocity.y * vCollisionNorm.x;
+        obj1.angularVelocity += tangentVelocity * 0.05;
+        
+        // Apply impulse to second object if it's not a mouse
         let force2 = impulse * obj1.mass;
         obj2.vx += impulse * obj1.mass * vCollisionNorm.x;
         obj2.vy += impulse * obj1.mass * vCollisionNorm.y;
         obj2.totalForce += force2 * 0.25;
+        
+        // Update color of second object
         if (typeof obj2.updateColorBasedOnForce === 'function') {
             obj2.updateColorBasedOnForce();
         }
+        
+        // Apply angular velocity to second object
+        obj2.angularVelocity -= tangentVelocity * 0.05;
     }
-     // Add a small bounce effect if one object is stationary (on floor)
-     const isObj1Resting = Math.abs(obj1.vx) < 0.01 && Math.abs(obj1.vy) < 0.01;
-     const isObj2Resting = Math.abs(obj2.vx) < 0.01 && Math.abs(obj2.vy) < 0.01;
-     const bounceBoost = 1.5; // subtle vertical boost
-     if (isObj1Resting && obj2.vy > 0) {
-         obj1.vy -= bounceBoost;
-     } else if (isObj2Resting && obj1.vy > 0) {
-         obj2.vy -= bounceBoost;
-     }
+    
+    // Add a small bounce effect if one object is stationary (on floor)
+    const isObj1Resting = Math.abs(obj1.vx) < 0.1 && Math.abs(obj1.vy) < 0.1;
+    const isObj2Resting = Math.abs(obj2.vx) < 0.1 && Math.abs(obj2.vy) < 0.1;
+    const bounceBoost = 2.0; // Increased bounce effect
+    
+    if (isObj1Resting && Math.abs(obj2.vy) > 0.5) {
+        obj1.vy -= bounceBoost;
+        // Add a bit of horizontal movement for more natural behavior
+        obj1.vx += (Math.random() - 0.5) * bounceBoost;
+    } else if (isObj2Resting && Math.abs(obj1.vy) > 0.5) {
+        obj2.vy -= bounceBoost;
+        // Add a bit of horizontal movement for more natural behavior
+        obj2.vx += (Math.random() - 0.5) * bounceBoost;
+    }
 }
 
 // Spawning logic
 function spawnCircle() {
-    const visualRadius = 20; // Random radius between 10 and 40
+    // Create beans with varied sizes
+    const minRadius = 15;
+    const maxRadius = 30;
+    const visualRadius = minRadius + Math.random() * (maxRadius - minRadius);
     const hitboxRadius = visualRadius * 0.8; // Slightly smaller hitbox for better alignment with bean shape
-    const x = Math.random() * (canvas.width - 2 * hitboxRadius) + hitboxRadius; // Random X within canvas
-    const y = Math.random() * (canvas.height - 2 * hitboxRadius) + hitboxRadius; // Random Y within canvas
-    const vx = (Math.random() - 0.5) * 200; // Random X velocity
-    const vy = (Math.random() - 0.5) * 200; // Random Y velocity
-    const mass = hitboxRadius ** 2; // Quadratic mass based on area
-    const angle = Math.random() * 2 * Math.PI; // Random angle
-    const angularVelocity = (Math.random() - 0.5) * 4; // Angular velocity between -2 and 2
+    
+    // Position with slight preference for the center of the screen
+    const centerBias = 0.3; // How much to bias toward center (0-1)
+    const randomX = Math.random();
+    const randomY = Math.random();
+    
+    // Apply center bias using a weighted average
+    const biasedX = randomX * (1 - centerBias) + 0.5 * centerBias;
+    const biasedY = randomY * (1 - centerBias) + 0.5 * centerBias;
+    
+    // Calculate position
+    const x = biasedX * (canvas.width - 2 * hitboxRadius) + hitboxRadius;
+    const y = biasedY * (canvas.height - 2 * hitboxRadius) + hitboxRadius;
+    
+    // More varied velocities with a slight upward bias (for more interesting initial movement)
+    const speedVariation = 250; // Higher value for more varied initial speeds
+    const vx = (Math.random() - 0.5) * speedVariation;
+    const vy = (Math.random() - 0.7) * speedVariation; // Slight upward bias (-0.7 instead of -0.5)
+    
+    // Mass is proportional to volume (r³) for more realistic physics
+    const mass = Math.pow(hitboxRadius, 3) * 0.1;
+    
+    // Random initial angle and spin
+    const angle = Math.random() * 2 * Math.PI;
+    const angularVelocity = (Math.random() - 0.5) * 8; // More initial spin
+    
+    // Create the bean
     const newCircle = new Circle(ctx, x, y, vx, vy, hitboxRadius, mass, angle, angularVelocity);
-    newCircle.visualRadius = visualRadius; // Store visual radius separately
+    newCircle.visualRadius = visualRadius;
+    
+    // Add a small "pop-in" effect
+    newCircle.scale = 0.1; // Start small
+    newCircle.targetScale = 1.0; // Grow to full size
+    
+    // Add to game objects
     GameState.gameObjects.push(newCircle);
+    
+    // Add a small force burst when spawning multiple beans
+    if (GameState.gameObjects.length > 1 && Math.random() > 0.7) {
+        // Find nearby beans and push them away slightly
+        const spawnForce = 100;
+        GameState.gameObjects.forEach(obj => {
+            if (obj !== newCircle) {
+                const dx = obj.x - newCircle.x;
+                const dy = obj.y - newCircle.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 100) { // Only affect nearby beans
+                    const forceMagnitude = spawnForce * (1 - distance / 100);
+                    obj.vx += (dx / distance) * forceMagnitude;
+                    obj.vy += (dy / distance) * forceMagnitude;
+                }
+            }
+        });
+    }
 }
