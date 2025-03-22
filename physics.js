@@ -131,6 +131,11 @@ function darkenHexColor(hex, percent) {
 
 function bindEventListeners() {
     window.addEventListener("resize", CanvasManager.resize);
+    window.addEventListener("orientationchange", () => {
+        setTimeout(() => {
+            CanvasManager.resize();
+        }, 300);
+    });
     canvas.addEventListener("mousedown", e => {
         mouse.active = true;
         mouse.x = e.clientX;
@@ -335,7 +340,7 @@ function detectCollisions() {
 }
 
 function detectEdgeCollisions() {
-    const rightBuffer = 0;
+    const rightBuffer = 10;
     const floorBuffer = 10;
 
     GameState.gameObjects.forEach(obj => {
