@@ -1,137 +1,126 @@
-let secondsPassed = 0;
-let oldTimeStamp = 0;
-let gameObjects = [];
-const g = 9.81*10; // Gravitational acceleration
-let mouseX = 0;
-let mouseY = 0;
-const mouseMass = 700;
-let mouseVX = 1;
-let mouseVY = 1;
-const mouseRadius = 50; // Invisible radius for interaction
-let mouseActive = false;
-let accelX = 0, accelY = 0, accelZ = 0;
-let lastAccelX = 0, lastAccelY = 0;
-let smoothingFactor = 0.8; // Adjust for smoother movement
-let lastShakeTime = 0; // Prevents repeated shakes
-const shakeThreshold = 5; // Adjust sensitivity (higher = harder shake)
-const shakeCooldown = 1000; // 1 second cooldown between shakes
+const GameState = {
+    secondsPassed: 0,
+    oldTimeStamp: 0,
+    gameObjects: []
+};
 
-// Set a restitution, a lower value will lose more energy when colliding
-const restitution = 0.80;
+// Constants and input-related state variables
+const g = 9.81 * 10;
+const minSeparation = 2; // Fine-tuned minimum distance to prevent sticking
 
-// Select the canvas and get the context
+
+const mouse = {
+    type: "mouse",
+    x: 0,
+    y: 0,
+    vx: 1,
+    vy: 1,
+    mass: 700,
+    radius: 50,
+    active: false
+};
+
+const motion = {
+    accelX: 0,
+    accelY: 0,
+    accelZ: 0,
+    lastAccelX: 0,
+    lastAccelY: 0,
+    lastAccelZ: 0,
+    smoothingFactor: 0.8,
+    lastShakeTime: 0,
+    shakeThreshold: 5,
+    shakeCooldown: 1000
+};
+
+const restitution = 0.87;
+
+// Canvas setup
 const canvas = document.getElementById('myCanvas');
 const ctx = canvas.getContext('2d');
 
-function resizeCanvas() {
-    const canvas = document.getElementById("myCanvas");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-
-function detectShake(event) {
-    if (!event.acceleration) return;
-
-    let accelX = event.acceleration.x;
-    let accelY = event.acceleration.y;
-    let accelZ = event.acceleration.z;
-
-    // Calculate change in acceleration (difference between frames)
-    let deltaX = Math.abs(accelX - lastAccelX);
-    let deltaY = Math.abs(accelY - lastAccelY);
-    let deltaZ = Math.abs(accelZ - lastAccelZ);
-    
-    // Total acceleration change
-    let totalChange = deltaX + deltaY + deltaZ;
-
-    // If total acceleration change is above threshold, register as a shake
-    if (totalChange > shakeThreshold) {
-        let currentTime = Date.now();
-        
-        // Apply shake effect if cooldown has passed
-        if (currentTime - lastShakeTime > shakeCooldown) {
-            lastShakeTime = currentTime; // Update last shake time
-            applyShakeEffect(); // Apply the effect to the beans
-        }
+const CanvasManager = {
+    resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
     }
+};
 
-    // Store last acceleration values for next frame
-    lastAccelX = accelX;
-    lastAccelY = accelY;
-    lastAccelZ = accelZ;
-}
+const MotionManager = {
+    handleMotion(event) {
+        if (event.accelerationIncludingGravity) {
+            let { x: rawX, y: rawY } = event.accelerationIncludingGravity;
+            motion.accelX = motion.smoothingFactor * motion.lastAccelX + (1 - motion.smoothingFactor) * rawX;
+            motion.accelY = motion.smoothingFactor * motion.lastAccelY + (1 - motion.smoothingFactor) * rawY;
+            motion.lastAccelX = motion.accelX;
+            motion.lastAccelY = motion.accelY;
+        }
+    },
 
-// Function to apply velocity burst to all beans
+    detectShake(event) {
+        if (!event.acceleration) return;
+        let accX = event.acceleration.x;
+        let accY = event.acceleration.y;
+        let accZ = event.acceleration.z;
+        let deltaX = Math.abs(accX - motion.lastAccelX);
+        let deltaY = Math.abs(accY - motion.lastAccelY);
+        let deltaZ = Math.abs(accZ - motion.lastAccelZ);
+        let totalChange = deltaX + deltaY + deltaZ;
+        if (totalChange > motion.shakeThreshold && Date.now() - motion.lastShakeTime > motion.shakeCooldown) {
+            motion.lastShakeTime = Date.now();
+            applyShakeEffect();
+        }
+        motion.lastAccelX = accX;
+        motion.lastAccelY = accY;
+        motion.lastAccelZ = accZ;
+    },
+
+    applyMotionToBeans() {
+        const ios = isIOS();
+        GameState.gameObjects.forEach(obj => {
+            if (obj instanceof Circle) {
+                obj.vx += (ios ? -motion.accelX : motion.accelX) * 2;
+                obj.vy += (ios ? -motion.accelY : motion.accelY) * 2;
+            }
+        });
+    }
+};
+
 function applyShakeEffect() {
-    gameObjects.forEach(obj => {
+    GameState.gameObjects.forEach(obj => {
         if (obj instanceof Circle) {
-            obj.vx += (Math.random() - 0.5) * 400; // Random shake impulse
+            obj.vx += (Math.random() - 0.5) * 400;
             obj.vy += (Math.random() - 0.5) * 400;
         }
     });
     console.log("Shake detected! Beans shaken!");
 }
 
-// Request permission for motion data (iOS-specific)
+// Motion permission for iOS
 function requestMotionPermission() {
-    DeviceMotionEvent.requestPermission()
-        .then((response) => {
-            if (response === "granted") {
-                console.log("Motion permission granted");
-                window.addEventListener("devicemotion", handleMotion, detectShake);
-                document.getElementById('requestPermissionButton').style.display = 'none'; // Hide button after granting permission
-            } else {
-                console.log("Motion permission denied");
-            }
-        })
-        .catch((error) => console.error("Error requesting motion permission:", error));
-}
-
-// Handles motion data
-function handleMotion(event) {
-    if (event.accelerationIncludingGravity) {
-        let rawX = event.accelerationIncludingGravity.x;
-        let rawY = event.accelerationIncludingGravity.y;
-
-        // Apply a smoothing filter
-        accelX = smoothingFactor * lastAccelX + (1 - smoothingFactor) * rawX;
-        accelY = smoothingFactor * lastAccelY + (1 - smoothingFactor) * rawY;
-
-        lastAccelX = accelX;
-        lastAccelY = accelY;
-    }
-}
-
-// Apply motion data to game objects
-function applyMotionToBeans() {
-    gameObjects.forEach(obj => {
-        if (obj instanceof Circle) {
-            obj.vx -= (isIOS() ? +accelX : accelX) * 2; // Reverse X-axis for iOS if needed
-            obj.vy += (isIOS() ? -accelY : accelY) * 2; // Reverse Y-axis for iOS
+    DeviceMotionEvent.requestPermission().then(response => {
+        if (response === "granted") {
+            window.addEventListener("devicemotion", MotionManager.handleMotion);
+            window.addEventListener("devicemotion", MotionManager.detectShake);
+            document.getElementById('requestPermissionButton').style.display = 'none';
         }
-    });
+    }).catch(console.error);
 }
 
-// Function to detect if the device is iOS
 function isIOS() {
     return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
 
 function darkenHexColor(hex, percent) {
-    // Remove the '#' from the beginning if it's there
     hex = hex.replace('#', '');
-
-    // Convert the hex to RGB values
     let r = parseInt(hex.substring(0, 2), 16);
     let g = parseInt(hex.substring(2, 4), 16);
     let b = parseInt(hex.substring(4, 6), 16);
 
-    // Darken each color channel
     r = Math.max(0, r - (r * percent / 100));
     g = Math.max(0, g - (g * percent / 100));
     b = Math.max(0, b - (b * percent / 100));
 
-    // Convert the RGB values back to hex
     let newHex = '#' + 
                 ('0' + Math.round(r).toString(16)).slice(-2) + 
                 ('0' + Math.round(g).toString(16)).slice(-2) + 
@@ -140,36 +129,32 @@ function darkenHexColor(hex, percent) {
     return newHex;
 }
 
-// Run on load and resize
-window.addEventListener("load", resizeCanvas);
-window.addEventListener("resize", resizeCanvas);
-// Mouse event listeners
-canvas.addEventListener("mousedown", (event) => {
-    mouseActive = true;
-    mouseX = event.clientX;
-    mouseY = event.clientY;
-    mouseVX = 0;
-    mouseVY = 0;
-});
+function bindEventListeners() {
+    window.addEventListener("resize", CanvasManager.resize);
+    canvas.addEventListener("mousedown", e => {
+        mouse.active = true;
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        mouse.vx = 0;
+        mouse.vy = 0;
+    });
+    canvas.addEventListener("mouseup", () => {
+        mouse.active = false;
+    });
+    canvas.addEventListener("mousemove", e => {
+        if (mouse.active) {
+            mouse.vx = e.clientX - mouse.x;
+            mouse.vy = e.clientY - mouse.y;
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        }
+    });
+}
 
-canvas.addEventListener("mouseup", () => {
-    mouseActive = false;
-});
-
-canvas.addEventListener("mousemove", (event) => {
-    if (mouseActive) {
-        mouseVX = event.clientX - mouseX;
-        mouseVY = event.clientY - mouseY;
-        mouseX = event.clientX;
-        mouseY = event.clientY;
-    }
-});
-
-
-// Resize the canvas when the window resizes
-window.addEventListener('resize', () => {
-    resizeCanvas();
-    // Optionally, reinitialize or reposition objects if needed
+window.addEventListener("load", () => {
+    CanvasManager.resize();
+    bindEventListeners();
+    init();
 });
 
 class GameObject {
@@ -180,10 +165,10 @@ class GameObject {
         this.vx = vx;
         this.vy = vy;
         this.mass = mass;
-        this.totalForce = 0; // Initialize total force property
-        this.colorIndex = 0; // Initialize color index
-        this.angle = angle;  // Initial angle (in radians)
-        this.angularVelocity = angularVelocity;  // Rotational velocity (in radians per second)
+        this.totalForce = 0;
+        this.colorIndex = 0;
+        this.angle = angle;
+        this.angularVelocity = angularVelocity;
         this.isColliding = false;
     }
 }
@@ -192,30 +177,29 @@ class Circle extends GameObject {
     constructor(context, x, y, vx, vy, radius, mass) {
         super(context, x, y, vx, vy, mass);
         this.radius = radius;
-        this.totalForce = 0; // Initialize total force property
-        this.colorIndex = 0; // Initialize color index to start with the first color of updated color palette
-        this.colors = ['#d3fc8d','#e0fc8d', '#fcfc8d', '#ffff61', '#ebcc34', '#ebb134', '#d19b26', '#d68418', '#d9800d', '#ad6103', '#8c4e03', '#995829', '#804f2d', '#6b462b', '#5c3e29', '#453021', '#36271c', '#1f1611', '#0d0a07']; // Updated color palette
-        this.startingColors = ['#5cff82', '#67e083', '#5cbd73', '#73bd5c', '#98ed7e', '#b2ed7e', '#c3fa93', '#c7e87b', '#e6fc8d', '#8dfcb0']; // Initial color palette
-        
-        // Pick a random color from the starting colors
+        this.totalForce = 0;
+        this.colorIndex = 0;
+        this.colors = ['#d3fc8d','#e0fc8d', '#fcfc8d', '#ffff61', '#ebcc34', '#ebb134', '#d19b26', '#d68418', '#d9800d', '#ad6103', '#8c4e03', '#995829', '#804f2d', '#6b462b', '#5c3e29', '#453021', '#36271c', '#1f1611', '#0d0a07'];
+        this.startingColors = ['#5cff82', '#67e083', '#5cbd73', '#73bd5c', '#98ed7e', '#b2ed7e', '#c3fa93', '#c7e87b', '#e6fc8d', '#8dfcb0'];
+
         this.color = this.startingColors[Math.floor(Math.random() * this.startingColors.length)];
         this.darkerColor = darkenHexColor(this.color, 20);
     }
 
     // Update color based on the total force and defined thresholds
     updateColorBasedOnForce() {
-        const forceThresholds = [500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 500000, 700000, 820000, 900000, 950000, 1000000, 1000500, 1000750, 1000950, 1001000]; // Example force thresholds
+        const forceThresholds = [500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 500000, 700000, 820000, 900000, 950000, 1000000, 1000500, 1000750, 1000950, 1001000];
 
-        // Find the next color index based on the force threshold
         for (let i = 0; i < forceThresholds.length; i++) {
             if (this.totalForce >= forceThresholds[i] && this.colorIndex <= i) {
-                this.colorIndex = i + 1; // Move to the next color
+                this.colorIndex = i + 1;
             }
         }
 
-        // Update the color based on the color index
-        this.color = this.colors[this.colorIndex];
-        this.darkerColor = darkenHexColor(this.color, 20);
+        if (this.colorIndex >= 0 && this.colorIndex < this.colors.length) {
+            this.color = this.colors[this.colorIndex];
+            this.darkerColor = darkenHexColor(this.color, 20);
+        }
     }
 
     draw() {
@@ -244,19 +228,14 @@ class Circle extends GameObject {
         }
     
 
-    update(secondsPassed) {
-        // Apply gravity
-        this.vy += g * secondsPassed;
-        
-        // Update position
-        this.x += this.vx * secondsPassed;
-        this.y += this.vy * secondsPassed;
-        this.angle += this.angularVelocity * secondsPassed;  // Update the angle based on the angular velocity
+        update() {
+            this.vy += g * GameState.secondsPassed;
+            this.x += this.vx * GameState.secondsPassed;
+            this.y += this.vy * GameState.secondsPassed;
+            this.angle += this.angularVelocity * GameState.secondsPassed;
+        }
+}     
 
-    }
-}
-
-window.onload = init;
 
 function init() {
     const canvas = document.getElementById('myCanvas');
@@ -268,24 +247,25 @@ function init() {
         document.getElementById('requestPermissionButton').addEventListener('click', requestMotionPermission);
     } else {
         // If not iOS, just start listening for motion events
-        window.addEventListener("devicemotion", handleMotion, detectShake);
+        window.addEventListener("devicemotion", MotionManager.handleMotion);
+        window.addEventListener("devicemotion", MotionManager.detectShake);
     }
     window.requestAnimationFrame(gameLoop);
 }
 
 
 function gameLoop(timeStamp) {
-    secondsPassed = (timeStamp - oldTimeStamp) / 1000;
-    secondsPassed = Math.min(secondsPassed, 0.1);
-    oldTimeStamp = timeStamp;
+    GameState.secondsPassed = (timeStamp - GameState.oldTimeStamp) / 1000;
+    GameState.secondsPassed = Math.min(GameState.secondsPassed, 0.1);
+    GameState.oldTimeStamp = timeStamp;
     
     clearCanvas();
-    applyMotionToBeans(); // Update v
-    gameObjects.forEach(obj => obj.update(secondsPassed));
+    MotionManager.applyMotionToBeans();
+    GameState.gameObjects.forEach(obj => {obj.update();});
     detectCollisions();
     detectEdgeCollisions();
      detectMouseCollisions();
-    gameObjects.forEach(obj => obj.draw());
+    GameState.gameObjects.forEach(obj => obj.draw());
     drawStats();
 
     window.requestAnimationFrame(gameLoop);
@@ -298,47 +278,53 @@ function clearCanvas() {
 }
 
 function drawStats() {
-    let totalObjects = gameObjects.length;
-    let totalForce = gameObjects.reduce((sum, obj) => sum + obj.totalForce, 0);
+    let totalObjects = GameState.gameObjects.length;
+    let totalForce = GameState.gameObjects.reduce((sum, obj) => sum + obj.totalForce, 0);
     let avgForce = totalObjects > 0 ? totalForce / totalObjects : 0;
-    let forceDeviation = Math.sqrt(gameObjects.reduce((sum, obj) => sum + Math.pow(obj.totalForce - avgForce, 2), 0) / totalObjects || 0);
+    let forceDeviation = Math.sqrt(GameState.gameObjects.reduce((sum, obj) => sum + Math.pow(obj.totalForce - avgForce, 2), 0) / totalObjects || 0);
 
     ctx.fillStyle = 'white';
     ctx.font = '16px Arial';
     ctx.fillText(`Total Objects: ${totalObjects}`, 10, 20);
     ctx.fillText(`Average Force: ${avgForce.toFixed(2)}`, 10, 40);
     ctx.fillText(`Force Deviation: ${forceDeviation.toFixed(2)}`, 10, 60);
-    ctx.fillText(`Accel X: ${accelX.toFixed(2)}`, 10, 80);
-    ctx.fillText(`Accel Y: ${accelY.toFixed(2)}`, 10, 100);
-    ctx.fillText(`Last shake time: ${lastShakeTime}`, 10, 120);
+    ctx.fillText(`Accel X: ${motion.accelX.toFixed(2)}`, 10, 80);
+    ctx.fillText(`Accel Y: ${motion.accelY.toFixed(2)}`, 10, 100);
+    ctx.fillText(`Last shake time: ${motion.lastShakeTime}`, 10, 120);
 }
 
 function detectMouseCollisions() {
-    if (!mouseActive) return;
-    gameObjects.forEach(obj => {
-        let dx = obj.x - mouseX;
-        let dy = obj.y - mouseY;
+    if (!mouse.active) return;
+    GameState.gameObjects.forEach(obj => {
+        let dx = obj.x - mouse.x;
+        let dy = obj.y - mouse.y;
         let distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance <= obj.radius + mouseRadius) {
-            let overlap = obj.radius + mouseRadius - distance;
+        if (distance <= obj.radius + mouse.radius) {
+            let overlap = obj.radius + mouse.radius - distance;
             obj.x += (overlap / 2) * (dx / distance);
             obj.y += (overlap / 2) * (dy / distance);
             obj.vx = -Math.abs(obj.vx) * restitution;
             obj.vy = -Math.abs(obj.vy) * restitution;
-            resolveCollision(obj, { x: mouseX, y: mouseY, vx: mouseVX+1*2, vy: mouseVY+1*2, mass: mouseMass });
+            resolveCollision(obj, {
+                x: mouse.x,
+                y: mouse.y,
+                vx: mouse.vx + 2,
+                vy: mouse.vy + 2,
+                mass: mouse.mass
+            });
         }
     });
 }
 
 function detectCollisions() {
-    for (let obj of gameObjects) {
+    for (let obj of GameState.gameObjects) {
         obj.isColliding = false;
     }
 
-    for (let i = 0; i < gameObjects.length; i++) {
-        for (let j = i + 1; j < gameObjects.length; j++) {
-            let obj1 = gameObjects[i];
-            let obj2 = gameObjects[j];
+    for (let i = 0; i < GameState.gameObjects.length; i++) {
+        for (let j = i + 1; j < GameState.gameObjects.length; j++) {
+            let obj1 = GameState.gameObjects[i];
+            let obj2 = GameState.gameObjects[j];
             if (circleIntersect(obj1.x, obj1.y, obj1.radius, obj2.x, obj2.y, obj2.radius)) {
                 obj1.isColliding = true;
                 obj2.isColliding = true;
@@ -349,31 +335,43 @@ function detectCollisions() {
 }
 
 function detectEdgeCollisions() {
-    let obj;
-    const rightBuffer = 10;  // Adjust this for the right-hand boundary perception
-    const floorBuffer = 10; // You can adjust this value as needed
+    const rightBuffer = 10;
+    const floorBuffer = 10;
 
-    for (let i = 0; i < gameObjects.length; i++) {
-        obj = gameObjects[i];
-
-        // Check for left and right
+    GameState.gameObjects.forEach(obj => {
+        // LEFT & RIGHT WALLS
         if (obj.x < obj.radius) {
             obj.vx = Math.abs(obj.vx) * restitution;
             obj.x = obj.radius;
-        } else if (obj.x > canvas.width - obj.radius ) {
+        } else if (obj.x > canvas.width - obj.radius - rightBuffer) {
             obj.vx = -Math.abs(obj.vx) * restitution;
-            obj.x = canvas.width - obj.radius;
+            obj.x = canvas.width - obj.radius - rightBuffer;
         }
-        // Check for bottom and top
+
+        // CEILING
         if (obj.y < obj.radius) {
-            obj.vy = Math.abs(obj.vy) * restitution;
+            obj.vy = Math.abs(obj.vy);
             obj.y = obj.radius;
-        } else if (obj.y > canvas.height - obj.radius - floorBuffer) {
-            obj.vy = -Math.abs(obj.vy) * restitution;
-            obj.y = canvas.height - obj.radius- floorBuffer;
         }
-    }
+
+        // FLOOR
+        const onFloor = obj.y > canvas.height - obj.radius - floorBuffer;
+        if (onFloor) {
+            obj.vy = -Math.abs(obj.vy);
+            obj.y = canvas.height - obj.radius - floorBuffer;
+
+            // Apply stronger horizontal friction ONLY on the floor
+            obj.vx *= 0.99;
+
+            // Optional: simulate loss of angular velocity (if you ever rotate visuals)
+            obj.angularVelocity *= 0.99;
+            if (Math.abs(obj.vx) < 0.1) obj.vx = 0;
+            if (Math.abs(obj.vy) < 0.1) obj.vy = 0;
+
+        }
+    });
 }
+
 
 function circleIntersect(x1, y1, r1, x2, y2, r2) {
     let squareDistance = (x1 - x2) ** 2 + (y1 - y2) ** 2;
@@ -383,7 +381,7 @@ function circleIntersect(x1, y1, r1, x2, y2, r2) {
 function resolveCollision(obj1, obj2) {
     let vCollision = { x: obj2.x - obj1.x, y: obj2.y - obj1.y };
     let distance = Math.sqrt(vCollision.x ** 2 + vCollision.y ** 2);
-    if (distance === 0) return;
+    if (distance < minSeparation) return; // prevent sticking
 
     let vCollisionNorm = { x: vCollision.x / distance, y: vCollision.y / distance };
     let vRelativeVelocity = { x: obj1.vx - obj2.vx, y: obj1.vy - obj2.vy };
@@ -392,28 +390,47 @@ function resolveCollision(obj1, obj2) {
 
     let impulse = (2 * speed) / (obj1.mass + obj2.mass);
 
-    // Calculate the force for both objects based on the impulse
     let force1 = impulse * obj2.mass;
-    // Add the calculated force to the totalForce property of each circle
-    obj1.totalForce += force1*0.25;
-    // Update the color based on the new totalForce
+    obj1.totalForce += force1 * 0.25;
     obj1.updateColorBasedOnForce();
     obj1.vx -= impulse * obj2.mass * vCollisionNorm.x;
     obj1.vy -= impulse * obj2.mass * vCollisionNorm.y;
 
-    if (obj2.mass == mouseMass) {
-     obj1.vx = obj1.vx**2;
-    obj1.vy = obj1.vy**2;
+    if (obj2.type === "mouse") {
+        obj1.vx = obj1.vx ** 2;
+        obj1.vy = obj1.vy ** 2;
     }
-    
-    if (obj2.mass !== mouseMass) {
+
+    if (obj2.type === "mouse") {
         let force2 = impulse * obj1.mass;
         obj2.vx += impulse * obj1.mass * vCollisionNorm.x;
         obj2.vy += impulse * obj1.mass * vCollisionNorm.y;
-        obj2.totalForce += force2*0.25;
-        obj2.updateColorBasedOnForce();
+        obj2.totalForce += force2 * 0.25;
+        if (typeof obj2.updateColorBasedOnForce === 'function') {
+            obj2.updateColorBasedOnForce();
+        }
+    }
+     // Add a small bounce effect if one object is stationary (on floor)
+     const isObj1Resting = Math.abs(obj1.vx) < 0.01 && Math.abs(obj1.vy) < 0.01;
+     const isObj2Resting = Math.abs(obj2.vx) < 0.01 && Math.abs(obj2.vy) < 0.01;
+     const bounceBoost = 1.5; // subtle vertical boost
+     if (isObj1Resting && obj2.vy > 0) {
+         obj1.vy -= bounceBoost;
+     } else if (isObj2Resting && obj1.vy > 0) {
+         obj2.vy -= bounceBoost;
+     }
+
+    // Push objects apart to prevent overlap
+    let overlap = (obj1.radius + obj2.radius) - distance;
+    if (overlap > 0) {
+        let correction = overlap / 2;
+        obj1.x -= correction * vCollisionNorm.x;
+        obj1.y -= correction * vCollisionNorm.y;
+        obj2.x += correction * vCollisionNorm.x;
+        obj2.y += correction * vCollisionNorm.y;
     }
 }
+
 // Spawning logic
 function spawnCircle() {
     const radius = 10 //Math.random() * 3 + 1; // Random rad    ius between 10 and 40
@@ -421,11 +438,11 @@ function spawnCircle() {
     const y = Math.random() * (canvas.height - 2 * radius) + radius; // Random Y within canvas
     const vx = (Math.random() - 0.5) * 200; // Random X velocity
     const vy = (Math.random() - 0.5) * 200; // Random Y velocity
-    const mass = radius ** 4; // Mass related to radius
+    const mass = radius ** 3; // Mass related to radius
     // Random angle between 0 and 2 * Math.PI
     const angle = Math.random() * 2 * Math.PI;
     // Random angular velocity between -2 and 2 radians per second
     const angularVelocity = (Math.random() - 0.5) * 4; // Angular velocity between -2 and 2
     const newCircle = new Circle(ctx, x, y, vx, vy, radius, mass, angle, angularVelocity); // Pass ctx instead of undefined 'context'
-    gameObjects.push(newCircle); // Add to the game objects array
+    GameState.gameObjects.push(newCircle); // Add to the game objects array
 }
