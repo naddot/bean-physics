@@ -79,7 +79,7 @@ const MotionManager = {
         const ios = isIOS();
         GameState.gameObjects.forEach(obj => {
             if (obj instanceof Circle) {
-                obj.vx += (ios ? -motion.accelX : motion.accelX) * 2;
+                obj.vx -= (ios ? -motion.accelX : motion.accelX) * 2;
                 obj.vy += (ios ? -motion.accelY : motion.accelY) * 2;
             }
         });
