@@ -231,11 +231,11 @@ class Circle extends GameObject {
         this.context.stroke(outlinePath);
 
         // DEBUG: Draw radius hitbox centered
-        this.context.beginPath();
-        this.context.arc(baseRadius, baseRadius, baseRadius, 0, Math.PI * 2);
-        this.context.strokeStyle = 'rgba(255, 0, 0, 0.4)';
-        this.context.lineWidth = 1;
-        this.context.stroke();
+        //this.context.beginPath();
+        //this.context.arc(baseRadius, baseRadius, baseRadius, 0, Math.PI * 2);
+        //this.context.strokeStyle = 'rgba(255, 0, 0, 0.4)';
+        //this.context.lineWidth = 1;
+        //this.context.stroke();
 
         this.context.restore();
     }
@@ -382,11 +382,11 @@ function detectEdgeCollisions() {
             if (Math.abs(obj.vy) < 0.1) obj.vy = 0;
         }
         // DEBUG: draw radius hitbox
-        ctx.beginPath();
-        ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 0, 0, 0.4)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        //ctx.beginPath();
+        //ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
+        //ctx.strokeStyle = 'rgba(255, 0, 0, 0.4)';
+        //ctx.lineWidth = 1;
+        //ctx.stroke();
     });
 }
 
