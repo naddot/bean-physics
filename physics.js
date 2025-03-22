@@ -1,7 +1,13 @@
 const GameState = {
     secondsPassed: 0,
     oldTimeStamp: 0,
-    gameObjects: []
+    gameObjects: [],
+    debug: {
+        enabled: false,
+        showHitboxes: true,
+        showVelocityVectors: true,
+        showForceValues: true
+    }
 };
 
 // Constants and input-related state variables
@@ -230,12 +236,14 @@ class Circle extends GameObject {
         this.context.lineWidth = 1;
         this.context.stroke(outlinePath);
 
-        // DEBUG: Draw radius hitbox centered
-        this.context.beginPath();
-        this.context.arc(baseRadius, baseRadius, baseRadius, 0, Math.PI * 2);
-        this.context.strokeStyle = 'rgba(255, 0, 0, 0.4)';
-        this.context.lineWidth = 1;
-        this.context.stroke();
+        // Draw internal hitbox only when debug mode is enabled
+        if (GameState.debug.enabled && GameState.debug.showHitboxes) {
+            this.context.beginPath();
+            this.context.arc(baseRadius, baseRadius, baseRadius, 0, Math.PI * 2);
+            this.context.strokeStyle = 'rgba(255, 0, 0, 0.4)';
+            this.context.lineWidth = 1;
+            this.context.stroke();
+        }
 
         this.context.restore();
     }
@@ -250,10 +258,22 @@ class Circle extends GameObject {
 }     
 
 
+// Debug mode toggle function
+function toggleDebugMode() {
+    GameState.debug.enabled = !GameState.debug.enabled;
+    const debugButton = document.getElementById('debugButton');
+    debugButton.textContent = GameState.debug.enabled ? 'Debug: ON' : 'Debug: OFF';
+    
+    // Log debug state to console
+    console.log(`Debug mode ${GameState.debug.enabled ? 'enabled' : 'disabled'}`);
+}
+
 function init() {
     const canvas = document.getElementById('myCanvas');
     const context = canvas.getContext('2d');
     document.getElementById('spawnButton').addEventListener('click', spawnCircle);
+    document.getElementById('debugButton').addEventListener('click', toggleDebugMode);
+    
     // Only show the permission button if the device is iOS
     if (isIOS() && typeof DeviceMotionEvent.requestPermission === "function") {
         document.getElementById('requestPermissionButton').style.display = 'block';
@@ -291,19 +311,32 @@ function clearCanvas() {
 }
 
 function drawStats() {
-    let totalObjects = GameState.gameObjects.length;
-    let totalForce = GameState.gameObjects.reduce((sum, obj) => sum + obj.totalForce, 0);
-    let avgForce = totalObjects > 0 ? totalForce / totalObjects : 0;
-    let forceDeviation = Math.sqrt(GameState.gameObjects.reduce((sum, obj) => sum + Math.pow(obj.totalForce - avgForce, 2), 0) / totalObjects || 0);
-
     ctx.fillStyle = 'white';
     ctx.font = '16px Arial';
+    
+    // Always show basic stats
+    let totalObjects = GameState.gameObjects.length;
     ctx.fillText(`Total Objects: ${totalObjects}`, 10, 20);
-    ctx.fillText(`Average Force: ${avgForce.toFixed(2)}`, 10, 40);
-    ctx.fillText(`Force Deviation: ${forceDeviation.toFixed(2)}`, 10, 60);
-    ctx.fillText(`Accel X: ${motion.accelX.toFixed(2)}`, 10, 80);
-    ctx.fillText(`Accel Y: ${motion.accelY.toFixed(2)}`, 10, 100);
-    ctx.fillText(`Last shake time: ${motion.lastShakeTime}`, 10, 120);
+    
+    // Show debug info only when debug mode is enabled
+    if (GameState.debug.enabled) {
+        let totalForce = GameState.gameObjects.reduce((sum, obj) => sum + obj.totalForce, 0);
+        let avgForce = totalObjects > 0 ? totalForce / totalObjects : 0;
+        let forceDeviation = Math.sqrt(GameState.gameObjects.reduce((sum, obj) => sum + Math.pow(obj.totalForce - avgForce, 2), 0) / totalObjects || 0);
+        
+        ctx.fillText(`Average Force: ${avgForce.toFixed(2)}`, 10, 40);
+        ctx.fillText(`Force Deviation: ${forceDeviation.toFixed(2)}`, 10, 60);
+        ctx.fillText(`Accel X: ${motion.accelX.toFixed(2)}`, 10, 80);
+        ctx.fillText(`Accel Y: ${motion.accelY.toFixed(2)}`, 10, 100);
+        ctx.fillText(`Last shake time: ${motion.lastShakeTime}`, 10, 120);
+        ctx.fillText(`Debug Mode: ON`, 10, 140);
+        
+        // Draw FPS
+        const fps = Math.round(1 / GameState.secondsPassed);
+        ctx.fillText(`FPS: ${fps}`, 10, 160);
+    } else {
+        ctx.fillText(`Debug Mode: OFF`, 10, 40);
+    }
 }
 
 function detectMouseCollisions() {
@@ -381,12 +414,53 @@ function detectEdgeCollisions() {
             if (Math.abs(obj.vx) < 0.1) obj.vx = 0;
             if (Math.abs(obj.vy) < 0.1) obj.vy = 0;
         }
-        // DEBUG: draw radius hitbox
-        //ctx.beginPath();
-        //ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
-        //ctx.strokeStyle = 'rgba(255, 0, 0, 0.4)';
-        //ctx.lineWidth = 1;
-        //ctx.stroke();
+        
+        // Draw debug visualizations if enabled
+        if (GameState.debug.enabled) {
+            // Draw hitbox
+            if (GameState.debug.showHitboxes) {
+                ctx.beginPath();
+                ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = obj.isColliding ? 'rgba(255, 0, 0, 0.7)' : 'rgba(255, 0, 0, 0.4)';
+                ctx.lineWidth = obj.isColliding ? 2 : 1;
+                ctx.stroke();
+            }
+            
+            // Draw velocity vectors
+            if (GameState.debug.showVelocityVectors && (Math.abs(obj.vx) > 0.1 || Math.abs(obj.vy) > 0.1)) {
+                const vectorScale = 0.1; // Scale factor for vector visualization
+                ctx.beginPath();
+                ctx.moveTo(obj.x, obj.y);
+                ctx.lineTo(obj.x + obj.vx * vectorScale, obj.y + obj.vy * vectorScale);
+                ctx.strokeStyle = 'rgba(0, 255, 0, 0.7)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw arrowhead
+                const angle = Math.atan2(obj.vy, obj.vx);
+                const arrowSize = 5;
+                ctx.beginPath();
+                ctx.moveTo(obj.x + obj.vx * vectorScale, obj.y + obj.vy * vectorScale);
+                ctx.lineTo(
+                    obj.x + obj.vx * vectorScale - arrowSize * Math.cos(angle - Math.PI / 6),
+                    obj.y + obj.vy * vectorScale - arrowSize * Math.sin(angle - Math.PI / 6)
+                );
+                ctx.lineTo(
+                    obj.x + obj.vx * vectorScale - arrowSize * Math.cos(angle + Math.PI / 6),
+                    obj.y + obj.vy * vectorScale - arrowSize * Math.sin(angle + Math.PI / 6)
+                );
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
+                ctx.fill();
+            }
+            
+            // Draw force values
+            if (GameState.debug.showForceValues) {
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.fillText(`F: ${Math.round(obj.totalForce)}`, obj.x - 15, obj.y - obj.radius - 5);
+            }
+        }
     });
 }
 

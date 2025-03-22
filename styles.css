@@ -74,6 +74,31 @@ canvas {
     background: #4e3629;
 }
 
+/* Debug button styling */
+#debugButton {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    padding: 8px 15px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+    z-index: 10; /* Ensures it stays above the canvas */
+}
+
+#debugButton:hover {
+    background: #555;
+    transform: scale(1.05);
+}
+
+#debugButton:active {
+    transform: scale(0.95);
+}
+
 /* Responsive fix: Re-center the button on resize */
 @media (max-height: 600px) {
     #spawnButton {
