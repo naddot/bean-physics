@@ -208,29 +208,37 @@ class Circle extends GameObject {
     }
 
     draw() {
-        this.context.save();  // Save the current state
-        this.context.fillStyle = this.color;
-        
-        // Move the coordinate system to (this.x, this.y)
+        this.context.save();
         this.context.translate(this.x, this.y);
-        this.context.rotate(this.angle);  // Rotate the canvas by the object's angle
-        //this.context.scale(this.radius, this.radius);
-        
+        this.context.rotate(this.angle);
+
+        const baseRadius = 12; // Based on visual center of bean SVG
+        const scale = this.radius / baseRadius;
+        this.context.scale(scale, scale);
+        this.context.translate(-baseRadius, -baseRadius); // Center the bean shape around its center
+
         // Define the SVG path using Path2D
         let path = new Path2D("M19.151 4.868a6.744 6.744 0 00-5.96-1.69 12.009 12.009 0 00-6.54 3.47 11.988 11.988 0 00-3.48 6.55 6.744 6.744 0 001.69 5.95 6.406 6.406 0 004.63 1.78 11.511 11.511 0 007.87-3.56C21.3 13.428 22.1 7.818 19.151 4.868Z");
-    
-        // Fill the path
-        this.context.fill(path);
-         // Define a different path for the outline
-        let outlinePath = new Path2D("M19.151,4.868a6.744,6.744,0,0,0-5.96-1.69,12.009,12.009,0,0,0-6.54,3.47,11.988,11.988,0,0,0-3.48,6.55,6.744,6.744,0,0,0,1.69,5.95,6.406,6.406,0,0,0,4.63,1.78,11.511,11.511,0,0,0,7.87-3.56C21.3,13.428,22.1,7.818,19.151,4.868Zm-14.99,8.48a11.041,11.041,0,0,1,3.19-5.99,10.976,10.976,0,0,1,5.99-3.19,8.016,8.016,0,0,1,1.18-.09,5.412,5.412,0,0,1,3.92,1.49.689.689,0,0,1,.11.13,6.542,6.542,0,0,1-2.12,1.23,7.666,7.666,0,0,0-2.96,1.93,7.666,7.666,0,0,0-1.93,2.96,6.589,6.589,0,0,1-1.71,2.63,6.7,6.7,0,0,1-2.63,1.71,7.478,7.478,0,0,0-2.35,1.36A6.18,6.18,0,0,1,4.161,13.348Zm12.49,3.31c-3.55,3.55-8.52,4.35-11.08,1.79a1.538,1.538,0,0,1-.12-.13,6.677,6.677,0,0,1,2.13-1.23,7.862,7.862,0,0,0,2.96-1.93,7.738,7.738,0,0,0,1.93-2.96,6.589,6.589,0,0,1,1.71-2.63,6.589,6.589,0,0,1,2.63-1.71,7.6,7.6,0,0,0,2.34-1.37C20.791,9.2,19.821,13.488,16.651,16.658Z");
-        this.context.strokeStyle = this.darkerColor;  // You can change this to whatever color you want for the outline
-        this.context.lineWidth = 1;  // Set the width of the outline
-        this.context.stroke(outlinePath);
-        
-        
 
-        this.context.restore(); // Restore the previous state
-        }
+        // Fill the path
+        this.context.fillStyle = this.color;
+        this.context.fill(path);
+
+        // Outline
+        let outlinePath = new Path2D("M19.151,4.868a6.744,6.744,0,0,0-5.96-1.69,12.009,12.009,0,0,0-6.54,3.47,11.988,11.988,0,0,0-3.48,6.55,6.744,6.744,0,0,0,1.69,5.95,6.406,6.406,0,0,0,4.63,1.78,11.511,11.511,0,0,0,7.87-3.56C21.3,13.428,22.1,7.818,19.151,4.868Zm-14.99,8.48a11.041,11.041,0,0,1,3.19-5.99,10.976,10.976,0,0,1,5.99-3.19,8.016,8.016,0,0,1,1.18-.09,5.412,5.412,0,0,1,3.92,1.49.689.689,0,0,1,.11.13,6.542,6.542,0,0,1-2.12,1.23,7.666,7.666,0,0,0-2.96,1.93,7.666,7.666,0,0,0-1.93,2.96,6.589,6.589,0,0,1-1.71,2.63,6.7,6.7,0,0,1-2.63,1.71,7.478,7.478,0,0,0-2.35,1.36A6.18,6.18,0,0,1,4.161,13.348Zm12.49,3.31c-3.55,3.55-8.52,4.35-11.08,1.79a1.538,1.538,0,0,1-.12-.13,6.677,6.677,0,0,1,2.13-1.23,7.862,7.862,0,0,0,2.96-1.93,7.738,7.738,0,0,0,1.93-2.96,6.589,6.589,0,0,1,1.71-2.63,6.589,6.589,0,0,1,2.63-1.71,7.6,7.6,0,0,0,2.34-1.37C20.791,9.2,19.821,13.488,16.651,16.658Z");
+        this.context.strokeStyle = this.darkerColor;
+        this.context.lineWidth = 1;
+        this.context.stroke(outlinePath);
+
+        // DEBUG: Draw radius hitbox centered
+        this.context.beginPath();
+        this.context.arc(baseRadius, baseRadius, baseRadius, 0, Math.PI * 2);
+        this.context.strokeStyle = 'rgba(255, 0, 0, 0.4)';
+        this.context.lineWidth = 1;
+        this.context.stroke();
+
+        this.context.restore();
+    }
     
 
         update() {
@@ -340,42 +348,48 @@ function detectCollisions() {
 }
 
 function detectEdgeCollisions() {
-    const rightBuffer = 10;
     const floorBuffer = 10;
 
     GameState.gameObjects.forEach(obj => {
-        // LEFT & RIGHT WALLS
-        if (obj.x < obj.radius) {
+        // LEFT WALL
+        if ((obj.x - obj.radius) <= 0) {
             obj.vx = Math.abs(obj.vx) * restitution;
             obj.x = obj.radius;
-        } else if (obj.x > canvas.width - obj.radius - rightBuffer) {
+        }
+
+        // RIGHT WALL
+        if ((obj.x + obj.radius) >= canvas.width) {
             obj.vx = -Math.abs(obj.vx) * restitution;
-            obj.x = canvas.width - obj.radius - rightBuffer;
+            obj.x = canvas.width - obj.radius;
         }
 
         // CEILING
-        if (obj.y < obj.radius) {
+        if ((obj.y - obj.radius) <= 0) {
             obj.vy = Math.abs(obj.vy);
             obj.y = obj.radius;
         }
 
         // FLOOR
-        const onFloor = obj.y > canvas.height - obj.radius - floorBuffer;
-        if (onFloor) {
+        const floorY = canvas.height - obj.radius - floorBuffer;
+        if ((obj.y + obj.radius) >= canvas.height - floorBuffer) {
             obj.vy = -Math.abs(obj.vy);
-            obj.y = canvas.height - obj.radius - floorBuffer;
+            obj.y = floorY;
 
             // Apply stronger horizontal friction ONLY on the floor
             obj.vx *= 0.99;
-
-            // Optional: simulate loss of angular velocity (if you ever rotate visuals)
             obj.angularVelocity *= 0.99;
             if (Math.abs(obj.vx) < 0.1) obj.vx = 0;
             if (Math.abs(obj.vy) < 0.1) obj.vy = 0;
-
         }
+        // DEBUG: draw radius hitbox
+        ctx.beginPath();
+        ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
     });
 }
+
 
 
 function circleIntersect(x1, y1, r1, x2, y2, r2) {
@@ -438,16 +452,16 @@ function resolveCollision(obj1, obj2) {
 
 // Spawning logic
 function spawnCircle() {
-    const radius = 10 //Math.random() * 3 + 1; // Random rad    ius between 10 and 40
-    const x = Math.random() * (canvas.width - 2 * radius) + radius; // Random X within canvas
-    const y = Math.random() * (canvas.height - 2 * radius) + radius; // Random Y within canvas
+    const visualRadius = Math.random() * 30 + 10; // Random radius between 10 and 40
+    const hitboxRadius = visualRadius * 0.8; // Slightly smaller hitbox for better alignment with bean shape
+    const x = Math.random() * (canvas.width - 2 * hitboxRadius) + hitboxRadius; // Random X within canvas
+    const y = Math.random() * (canvas.height - 2 * hitboxRadius) + hitboxRadius; // Random Y within canvas
     const vx = (Math.random() - 0.5) * 200; // Random X velocity
     const vy = (Math.random() - 0.5) * 200; // Random Y velocity
-    const mass = radius ** 3; // Mass related to radius
-    // Random angle between 0 and 2 * Math.PI
-    const angle = Math.random() * 2 * Math.PI;
-    // Random angular velocity between -2 and 2 radians per second
+    const mass = hitboxRadius ** 2; // Quadratic mass based on area
+    const angle = Math.random() * 2 * Math.PI; // Random angle
     const angularVelocity = (Math.random() - 0.5) * 4; // Angular velocity between -2 and 2
-    const newCircle = new Circle(ctx, x, y, vx, vy, radius, mass, angle, angularVelocity); // Pass ctx instead of undefined 'context'
-    GameState.gameObjects.push(newCircle); // Add to the game objects array
+    const newCircle = new Circle(ctx, x, y, vx, vy, hitboxRadius, mass, angle, angularVelocity);
+    newCircle.visualRadius = visualRadius; // Store visual radius separately
+    GameState.gameObjects.push(newCircle);
 }
