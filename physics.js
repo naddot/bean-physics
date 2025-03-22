@@ -231,11 +231,11 @@ class Circle extends GameObject {
         this.context.stroke(outlinePath);
 
         // DEBUG: Draw radius hitbox centered
-        //this.context.beginPath();
-        //this.context.arc(baseRadius, baseRadius, baseRadius, 0, Math.PI * 2);
-        //this.context.strokeStyle = 'rgba(255, 0, 0, 0.4)';
-        //this.context.lineWidth = 1;
-        //this.context.stroke();
+        this.context.beginPath();
+        this.context.arc(baseRadius, baseRadius, baseRadius, 0, Math.PI * 2);
+        this.context.strokeStyle = 'rgba(255, 0, 0, 0.4)';
+        this.context.lineWidth = 1;
+        this.context.stroke();
 
         this.context.restore();
     }
