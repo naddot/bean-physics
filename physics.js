@@ -335,7 +335,7 @@ function detectCollisions() {
 }
 
 function detectEdgeCollisions() {
-    const rightBuffer = 10;
+    const rightBuffer = 0;
     const floorBuffer = 10;
 
     GameState.gameObjects.forEach(obj => {
