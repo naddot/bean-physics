@@ -15,7 +15,7 @@ const mouse = {
     y: 0,
     vx: 1,
     vy: 1,
-    mass: 700,
+    mass: 707,
     radius: 50,
     active: false
 };
@@ -33,7 +33,7 @@ const motion = {
     shakeCooldown: 1000
 };
 
-const restitution = 0.87;
+const restitution = 0.80;
 
 // Canvas setup
 const canvas = document.getElementById('myCanvas');
