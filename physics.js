@@ -105,45 +105,48 @@ const MotionManager = {
     },
     
     applyMotionToBeans() {
-        // ✅ Inject fake motion when debug mode is on
+        // Log current tilt input
         if (GameState.debug.enabled) {
-        //    motion.accelX = Math.sin(Date.now() / 1000) * 0.5;
-        //    motion.accelY = Math.cos(Date.now() / 1000) * 0.5;
-        console.log(`Tilt applied: accelX=${motion.accelX}, accelY=${motion.accelY}`); // ✅ DEBUG
+            console.log(`📐 Tilt input: accelX=${motion.accelX.toFixed(3)}, accelY=${motion.accelY.toFixed(3)}`);
         }
-        
+    
         const ios = isIOS();
-        const tiltFactor = 300.0; // Increased tilt sensitivity
-        const maxTiltForce = 15; // Maximum force applied by tilting
-        const massScaling = true; // Whether to scale tilt effect by mass
-        
+        const tiltFactor = 100; // Start smaller than 300; it's scaled later
+        const maxTiltForce = 50; // Higher cap to allow visible mobile motion
+        const massScaling = true;
+    
         GameState.gameObjects.forEach(obj => {
             if (obj instanceof Circle) {
-                // Calculate tilt force with mass consideration
-                let tiltForceX = (ios ? -motion.accelX : motion.accelX) * tiltFactor;
-                let tiltForceY = (ios ? -motion.accelY : motion.accelY) * tiltFactor;
-                
-                // Apply mass scaling if enabled (heavier objects respond less to tilt)
+                let accelX = ios ? -motion.accelX : motion.accelX;
+                let accelY = ios ? -motion.accelY : motion.accelY;
+    
+                // Initial tilt force
+                let tiltForceX = accelX * tiltFactor;
+                let tiltForceY = accelY * tiltFactor;
+    
+                // Apply mass scaling if enabled
                 if (massScaling) {
                     const massEffect = Math.max(0.5, Math.min(1.5, 1000 / obj.mass));
                     tiltForceX *= massEffect;
                     tiltForceY *= massEffect;
                 }
-                
-                // Limit maximum tilt force
+    
+                // Clamp to max force
                 tiltForceX = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceX));
                 tiltForceY = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceY));
-                
-                // Apply forces with realistic acceleration
+    
+                // Apply force
                 obj.vx += tiltForceX * GameState.secondsPassed;
                 obj.vy += tiltForceY * GameState.secondsPassed;
-                console.log(`Bean ${obj.id || ''} vx=${obj.vx}, vy=${obj.vy}`); // ✅ DEBUG LINE
-
-                
-                // Apply air resistance (more for faster objects)
+    
+                // Debug bean movement
+                if (GameState.debug.enabled) {
+                    console.log(`🫘 Bean ${obj.id || ''} tiltForceX=${tiltForceX.toFixed(2)}, vx=${obj.vx.toFixed(2)}, x=${obj.x.toFixed(2)}`);
+                }
+    
+                // Air resistance
                 const speed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
-                const airResistance = 0.01 + (speed * 0.001); // Progressive air resistance
-                
+                const airResistance = 0.01 + (speed * 0.001);
                 if (speed > 0.1) {
                     obj.vx *= (1 - airResistance * GameState.secondsPassed);
                     obj.vy *= (1 - airResistance * GameState.secondsPassed);
@@ -151,7 +154,7 @@ const MotionManager = {
             }
         });
     }
-};
+};    
 
 function applyShakeEffect() {
     GameState.gameObjects.forEach(obj => {
