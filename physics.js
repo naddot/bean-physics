@@ -710,7 +710,8 @@ function spawnCircle() {
     // Create beans with varied sizes
     const minRadius = 15;
     const maxRadius = 30;
-    const visualRadius = minRadius + Math.random() * (maxRadius - minRadius);
+    //const visualRadius = minRadius + Math.random() * (maxRadius - minRadius);
+    const visualRadius = 20 
     const hitboxRadius = visualRadius * 0.8; // Slightly smaller hitbox for better alignment with bean shape
     
     // Position with slight preference for the center of the screen
