@@ -102,14 +102,14 @@ const MotionManager = {
     
     applyMotionToBeans() {
         // ✅ Inject fake motion when debug mode is on
-        //if (GameState.debug.enabled) {
-        //    motion.accelX = Math.sin(Date.now() / 1000) * 0.5;
-        //    motion.accelY = Math.cos(Date.now() / 1000) * 0.5;
-        //console.log(`Tilt applied: accelX=${motion.accelX}, accelY=${motion.accelY}`); // ✅ DEBUG
-        //}
+        if (GameState.debug.enabled) {
+            motion.accelX = Math.sin(Date.now() / 1000) * 0.5;
+            motion.accelY = Math.cos(Date.now() / 1000) * 0.5;
+        console.log(`Tilt applied: accelX=${motion.accelX}, accelY=${motion.accelY}`); // ✅ DEBUG
+        }
         
         const ios = isIOS();
-        const tiltFactor = 30.0; // Increased tilt sensitivity
+        const tiltFactor = 300.0; // Increased tilt sensitivity
         const maxTiltForce = 15; // Maximum force applied by tilting
         const massScaling = true; // Whether to scale tilt effect by mass
         
