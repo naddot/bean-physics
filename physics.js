@@ -107,8 +107,8 @@ const MotionManager = {
     applyMotionToBeans() {
         // ✅ Inject fake motion when debug mode is on
         if (GameState.debug.enabled) {
-            motion.accelX = Math.sin(Date.now() / 1000) * 0.5;
-            motion.accelY = Math.cos(Date.now() / 1000) * 0.5;
+        //    motion.accelX = Math.sin(Date.now() / 1000) * 0.5;
+        //    motion.accelY = Math.cos(Date.now() / 1000) * 0.5;
         console.log(`Tilt applied: accelX=${motion.accelX}, accelY=${motion.accelY}`); // ✅ DEBUG
         }
         
