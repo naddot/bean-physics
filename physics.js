@@ -109,7 +109,7 @@ const MotionManager = {
         }
         
         const ios = isIOS();
-        const tiltFactor = 30.0; // Increased tilt sensitivity
+        const tiltFactor = 300.0; // Increased tilt sensitivity
         const maxTiltForce = 15; // Maximum force applied by tilting
         const massScaling = true; // Whether to scale tilt effect by mass
         
@@ -127,8 +127,8 @@ const MotionManager = {
                 }
                 
                 // Limit maximum tilt force
-                //tiltForceX = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceX));
-                //tiltForceY = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceY));
+                tiltForceX = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceX));
+                tiltForceY = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceY));
                 
                 // Apply forces with realistic acceleration
                 obj.vx += tiltForceX * GameState.secondsPassed;
@@ -171,22 +171,6 @@ function requestMotionPermission() {
             console.log("Permission not granted:", response);
         }
     }).catch(console.error);
-}
-
-function setupTiltTracking() {
-    window.addEventListener("deviceorientation", (event) => {
-        const gamma = event.gamma ?? 0; // left-right tilt
-        const beta = event.beta ?? 0;   // front-back tilt
-
-        // Normalize to range [-1, 1]
-        motion.accelX = gamma / 90;
-        motion.accelY = beta / 90;
-
-        if (GameState.debug.enabled) {
-            console.log(`Tilt (deviceorientation): gamma=${gamma}, beta=${beta}`);
-            console.log(`Mapped accelX=${motion.accelX}, accelY=${motion.accelY}`);
-        }
-    });
 }
 
 
@@ -242,7 +226,6 @@ function bindEventListeners() {
 window.addEventListener("load", () => {
     CanvasManager.resize();
     bindEventListeners();
-    setupTiltTracking();
     init();
 });
 
@@ -419,7 +402,7 @@ function init() {
         document.getElementById('requestPermissionButton').addEventListener('click', requestMotionPermission);
     } else {
         // If not iOS, just start listening for motion events
-        //window.addEventListener("devicemotion", MotionManager.handleMotion);
+        window.addEventListener("devicemotion", MotionManager.handleMotion);
         window.addEventListener("devicemotion", MotionManager.detectShake);
     }
     window.requestAnimationFrame(gameLoop);
