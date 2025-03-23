@@ -101,9 +101,14 @@ const MotionManager = {
     },
     
     applyMotionToBeans() {
+        // ✅ Inject fake motion when debug mode is on
+        if (GameState.debug.enabled) {
+            motion.accelX = Math.sin(Date.now() / 1000) * 0.5;
+            motion.accelY = Math.cos(Date.now() / 1000) * 0.5;
+        }
         console.log(`Tilt applied: accelX=${motion.accelX}, accelY=${motion.accelY}`); // ✅ DEBUG
         const ios = isIOS();
-        const tiltFactor = 3.0; // Increased tilt sensitivity
+        const tiltFactor = 30.0; // Increased tilt sensitivity
         const maxTiltForce = 15; // Maximum force applied by tilting
         const massScaling = true; // Whether to scale tilt effect by mass
         
@@ -127,6 +132,8 @@ const MotionManager = {
                 // Apply forces with realistic acceleration
                 obj.vx += tiltForceX * GameState.secondsPassed;
                 obj.vy += tiltForceY * GameState.secondsPassed;
+                console.log(`Bean ${obj.id || ''} vx=${obj.vx}, vy=${obj.vy}`); // ✅ DEBUG LINE
+
                 
                 // Apply air resistance (more for faster objects)
                 const speed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
@@ -366,6 +373,8 @@ class Circle extends GameObject {
             // Ease-out function for smoother animation
             this.scale = this.targetScale * (1 - Math.pow(1 - progress, 3));
         }
+        console.log(`Bean ${this.id || ''}: vx=${this.vx.toFixed(2)}, vy=${this.vy.toFixed(2)}, x=${this.x.toFixed(2)}, y=${this.y.toFixed(2)}`);
+
     }
 }     
 
@@ -402,6 +411,7 @@ function init() {
 function gameLoop(timeStamp) {
     GameState.secondsPassed = (timeStamp - GameState.oldTimeStamp) / 1000;
     GameState.secondsPassed = Math.min(GameState.secondsPassed, 0.1);
+    console.log("Seconds passed:", GameState.secondsPassed);
     GameState.oldTimeStamp = timeStamp;
     
     clearCanvas();
