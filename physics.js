@@ -116,8 +116,10 @@ const MotionManager = {
         GameState.gameObjects.forEach(obj => {
             if (obj instanceof Circle) {
                 // Calculate tilt force with mass consideration
-                let tiltForceX = (ios ? -motion.accelX : motion.accelX) * tiltFactor;
-                let tiltForceY = (ios ? -motion.accelY : motion.accelY) * tiltFactor;
+                // Remove the platform-specific logic for now
+                let tiltForceX = motion.accelX * tiltFactor;
+                let tiltForceY = motion.accelY * tiltFactor;
+
                 
                 // Apply mass scaling if enabled (heavier objects respond less to tilt)
                 if (massScaling) {
