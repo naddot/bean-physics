@@ -34,10 +34,12 @@ const motion = {
     lastAccelY: 0,
     lastAccelZ: 0,
     smoothingFactor: 0.8,
+    shakeThreshold: 25,
+    shakeCooldown: 1000,
     lastShakeTime: 0,
-    shakeThreshold: 5000,
-    shakeCooldown: 1000
+    shakePending: false
 };
+
 
 const restitution = 0.80;
 
@@ -54,8 +56,10 @@ const CanvasManager = {
 
 const MotionManager = {
     handleMotion(event) {
+        console.log("handleMotion fired"); // ✅ DEBUG LINE
         if (event.accelerationIncludingGravity) {
             let { x: rawX, y: rawY, z: rawZ } = event.accelerationIncludingGravity;
+            console.log(`rawX: ${rawX}, rawY: ${rawY}`); // ✅ DEBUG LINE
             
             // Apply adaptive smoothing - less smoothing for rapid changes, more for subtle ones
             const adaptiveSmoothingX = Math.min(0.9, Math.max(0.5, motion.smoothingFactor - Math.abs(rawX - motion.lastAccelX) * 0.05));
@@ -97,6 +101,7 @@ const MotionManager = {
     },
     
     applyMotionToBeans() {
+        console.log(`Tilt applied: accelX=${motion.accelX}, accelY=${motion.accelY}`); // ✅ DEBUG
         const ios = isIOS();
         const tiltFactor = 3.0; // Increased tilt sensitivity
         const maxTiltForce = 15; // Maximum force applied by tilting
@@ -150,12 +155,16 @@ function applyShakeEffect() {
 function requestMotionPermission() {
     DeviceMotionEvent.requestPermission().then(response => {
         if (response === "granted") {
+            console.log("Motion permission granted");
             window.addEventListener("devicemotion", MotionManager.handleMotion);
             window.addEventListener("devicemotion", MotionManager.detectShake);
             document.getElementById('requestPermissionButton').style.display = 'none';
+        } else {
+            console.log("Permission not granted:", response);
         }
     }).catch(console.error);
 }
+
 
 function isIOS() {
     return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
