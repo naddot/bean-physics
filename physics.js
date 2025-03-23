@@ -127,8 +127,8 @@ const MotionManager = {
                 }
                 
                 // Limit maximum tilt force
-                tiltForceX = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceX));
-                tiltForceY = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceY));
+                //tiltForceX = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceX));
+                //tiltForceY = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceY));
                 
                 // Apply forces with realistic acceleration
                 obj.vx += tiltForceX * GameState.secondsPassed;
