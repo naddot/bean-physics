@@ -173,6 +173,22 @@ function requestMotionPermission() {
     }).catch(console.error);
 }
 
+function setupTiltTracking() {
+    window.addEventListener("deviceorientation", (event) => {
+        const gamma = event.gamma ?? 0; // left-right tilt
+        const beta = event.beta ?? 0;   // front-back tilt
+
+        // Normalize to range [-1, 1]
+        motion.accelX = gamma / 90;
+        motion.accelY = beta / 90;
+
+        if (GameState.debug.enabled) {
+            console.log(`Tilt (deviceorientation): gamma=${gamma}, beta=${beta}`);
+            console.log(`Mapped accelX=${motion.accelX}, accelY=${motion.accelY}`);
+        }
+    });
+}
+
 
 function isIOS() {
     return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -226,6 +242,7 @@ function bindEventListeners() {
 window.addEventListener("load", () => {
     CanvasManager.resize();
     bindEventListeners();
+    setupTiltTracking();
     init();
 });
 
@@ -402,7 +419,7 @@ function init() {
         document.getElementById('requestPermissionButton').addEventListener('click', requestMotionPermission);
     } else {
         // If not iOS, just start listening for motion events
-        window.addEventListener("devicemotion", MotionManager.handleMotion);
+        //window.addEventListener("devicemotion", MotionManager.handleMotion);
         window.addEventListener("devicemotion", MotionManager.detectShake);
     }
     window.requestAnimationFrame(gameLoop);
