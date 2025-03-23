@@ -35,7 +35,7 @@ const motion = {
     lastAccelZ: 0,
     smoothingFactor: 0.8,
     lastShakeTime: 0,
-    shakeThreshold: 500,
+    shakeThreshold: 5000,
     shakeCooldown: 1000
 };
 
