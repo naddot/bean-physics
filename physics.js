@@ -56,29 +56,33 @@ const CanvasManager = {
 
 const MotionManager = {
     handleMotion(event) {
-        console.log("handleMotion fired"); // ✅ DEBUG LINE
-        if (event.accelerationIncludingGravity) {
-            let { x: rawX, y: rawY, z: rawZ } = event.accelerationIncludingGravity;
-            console.log(`rawX: ${rawX}, rawY: ${rawY}`); // ✅ DEBUG LINE
-            
-            // Apply adaptive smoothing - less smoothing for rapid changes, more for subtle ones
-            const adaptiveSmoothingX = Math.min(0.9, Math.max(0.5, motion.smoothingFactor - Math.abs(rawX - motion.lastAccelX) * 0.05));
-            const adaptiveSmoothingY = Math.min(0.9, Math.max(0.5, motion.smoothingFactor - Math.abs(rawY - motion.lastAccelY) * 0.05));
-            
-            motion.accelX = adaptiveSmoothingX * motion.lastAccelX + (1 - adaptiveSmoothingX) * rawX;
-            motion.accelY = adaptiveSmoothingY * motion.lastAccelY + (1 - adaptiveSmoothingY) * rawY;
-            motion.accelZ = motion.smoothingFactor * motion.lastAccelZ + (1 - motion.smoothingFactor) * rawZ;
-            
-            motion.lastAccelX = motion.accelX;
-            motion.lastAccelY = motion.accelY;
-            motion.lastAccelZ = motion.accelZ;
-            
-            if (GameState.debug.enabled) {
-                console.log(`Raw accel: X=${rawX.toFixed(2)}, Y=${rawY.toFixed(2)}, Z=${rawZ.toFixed(2)}`);
-                console.log(`Smoothed accel: X=${motion.accelX.toFixed(2)}, Y=${motion.accelY.toFixed(2)}, Z=${motion.accelZ.toFixed(2)}`);
-            }
+        console.log("📲 handleMotion fired");
+    
+        // Log both types of acceleration for comparison
+        console.log("🧪 acceleration:", event.acceleration);
+        console.log("🧪 accelerationIncludingGravity:", event.accelerationIncludingGravity);
+    
+        const rawX = event.accelerationIncludingGravity?.x ?? 0;
+        const rawY = event.accelerationIncludingGravity?.y ?? 0;
+        const rawZ = event.accelerationIncludingGravity?.z ?? 0;
+    
+        console.log(`📉 Raw accelIncludingGravity: X=${rawX}, Y=${rawY}, Z=${rawZ}`);
+    
+        // TEMP: Bypass smoothing for clear motion during mobile testing
+        motion.accelX = rawX;
+        motion.accelY = rawY;
+        motion.accelZ = rawZ;
+    
+        // Optionally store raw values (for analytics/debug)
+        motion.rawX = rawX;
+        motion.rawY = rawY;
+        motion.rawZ = rawZ;
+    
+        if (GameState.debug.enabled) {
+            console.log(`🧭 Final motion.accelX=${motion.accelX}, accelY=${motion.accelY}`);
         }
-    },
+    }
+    ,
 
     detectShake(event) {
         if (!event.acceleration) return;
