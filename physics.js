@@ -58,23 +58,23 @@ const MotionManager = {
     handleMotion(event) {
         console.log("handleMotion fired"); // ✅ DEBUG LINE
         if (event.accelerationIncludingGravity) {
-            let rawX = event.accelerationIncludingGravity.x ?? 0;
-            let rawY = event.accelerationIncludingGravity.y ?? 0;
-            let rawZ = event.accelerationIncludingGravity.z ?? 0;
+            let { x: rawX, y: rawY, z: rawZ } = event.accelerationIncludingGravity;
             console.log(`rawX: ${rawX}, rawY: ${rawY}`); // ✅ DEBUG LINE
-    
+            
+            // Apply adaptive smoothing - less smoothing for rapid changes, more for subtle ones
             const adaptiveSmoothingX = Math.min(0.9, Math.max(0.5, motion.smoothingFactor - Math.abs(rawX - motion.lastAccelX) * 0.05));
             const adaptiveSmoothingY = Math.min(0.9, Math.max(0.5, motion.smoothingFactor - Math.abs(rawY - motion.lastAccelY) * 0.05));
-    
+            
             motion.accelX = adaptiveSmoothingX * motion.lastAccelX + (1 - adaptiveSmoothingX) * rawX;
             motion.accelY = adaptiveSmoothingY * motion.lastAccelY + (1 - adaptiveSmoothingY) * rawY;
             motion.accelZ = motion.smoothingFactor * motion.lastAccelZ + (1 - motion.smoothingFactor) * rawZ;
-    
+            
             motion.lastAccelX = motion.accelX;
             motion.lastAccelY = motion.accelY;
             motion.lastAccelZ = motion.accelZ;
-    
+            
             if (GameState.debug.enabled) {
+                console.log(`Raw accel: X=${rawX.toFixed(2)}, Y=${rawY.toFixed(2)}, Z=${rawZ.toFixed(2)}`);
                 console.log(`Smoothed accel: X=${motion.accelX.toFixed(2)}, Y=${motion.accelY.toFixed(2)}, Z=${motion.accelZ.toFixed(2)}`);
             }
         }
@@ -109,17 +109,15 @@ const MotionManager = {
         }
         
         const ios = isIOS();
-        const tiltFactor = 300.0; // Increased tilt sensitivity
+        const tiltFactor = 30.0; // Increased tilt sensitivity
         const maxTiltForce = 15; // Maximum force applied by tilting
         const massScaling = true; // Whether to scale tilt effect by mass
         
         GameState.gameObjects.forEach(obj => {
             if (obj instanceof Circle) {
                 // Calculate tilt force with mass consideration
-                // Remove the platform-specific logic for now
-                let tiltForceX = motion.accelX * tiltFactor;
-                let tiltForceY = motion.accelY * tiltFactor;
-
+                let tiltForceX = (ios ? -motion.accelX : motion.accelX) * tiltFactor;
+                let tiltForceY = (ios ? -motion.accelY : motion.accelY) * tiltFactor;
                 
                 // Apply mass scaling if enabled (heavier objects respond less to tilt)
                 if (massScaling) {
