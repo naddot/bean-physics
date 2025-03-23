@@ -85,15 +85,17 @@ const MotionManager = {
         let deltaY = Math.abs(accY - motion.lastAccelY);
         let deltaZ = Math.abs(accZ - motion.lastAccelZ);
         let totalChange = deltaX + deltaY + deltaZ;
+    
         if (totalChange > motion.shakeThreshold && Date.now() - motion.lastShakeTime > motion.shakeCooldown) {
             motion.lastShakeTime = Date.now();
-            applyShakeEffect();
+            motion.shakePending = true; // <-- trigger shake in loop
         }
+    
         motion.lastAccelX = accX;
         motion.lastAccelY = accY;
         motion.lastAccelZ = accZ;
     },
-
+    
     applyMotionToBeans() {
         const ios = isIOS();
         const tiltFactor = 3.0; // Increased tilt sensitivity
@@ -394,7 +396,14 @@ function gameLoop(timeStamp) {
     GameState.oldTimeStamp = timeStamp;
     
     clearCanvas();
-    MotionManager.applyMotionToBeans();
+     // Apply tilt-based motion
+     MotionManager.applyMotionToBeans();
+
+     // Apply shake effect if triggered
+     if (motion.shakePending) {
+         applyShakeEffect();
+         motion.shakePending = false;
+     }
     GameState.gameObjects.forEach(obj => {obj.update();});
     detectCollisions();
     detectEdgeCollisions();
