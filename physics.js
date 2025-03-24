@@ -111,7 +111,7 @@ const MotionManager = {
         }
     
         const ios = isIOS();
-        const tiltFactor = 100; // Start smaller than 300; it's scaled later
+        const tiltFactor = 300; // Start smaller than 300; it's scaled later
         const maxTiltForce = 50; // Higher cap to allow visible mobile motion
         const massScaling = true;
     
