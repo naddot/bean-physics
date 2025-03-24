@@ -159,8 +159,8 @@ const MotionManager = {
 function applyShakeEffect() {
     GameState.gameObjects.forEach(obj => {
         if (obj instanceof Circle) {
-            obj.vx += (Math.random() - 0.5) * 4000;
-            obj.vy += (Math.random() - 0.5) * 4000;
+            obj.vx += (Math.random() - 0.25) * 8000;
+            obj.vy += (Math.random() - 0.25) * 8000;
         }
     });
     console.log("Shake detected! Beans shaken!");
@@ -769,7 +769,7 @@ function spawnCircle() {
     const vy = (Math.random() - 0.7) * speedVariation; // Slight upward bias (-0.7 instead of -0.5)
     
     // Mass is proportional to volume (r³) for more realistic physics
-    const mass = Math.pow(hitboxRadius, 3) * 0.1;
+    const mass = Math.pow(hitboxRadius, 3) * 0.1 * (Math.random() * (1.15 - 1) + 1);
     
     // Random initial angle and spin
     const angle = Math.random() * 2 * Math.PI;
