@@ -159,8 +159,8 @@ const MotionManager = {
 function applyShakeEffect() {
     GameState.gameObjects.forEach(obj => {
         if (obj instanceof Circle) {
-            obj.vx += (Math.random() - 0.75) * 400;
-            obj.vy += (Math.random() - 0.75) * 400;
+            obj.vx += (Math.random() - 0.5) * 4000;
+            obj.vy += (Math.random() - 0.5) * 4000;
         }
     });
     console.log("Shake detected! Beans shaken!");
