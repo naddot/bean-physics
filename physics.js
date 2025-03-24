@@ -117,7 +117,7 @@ const MotionManager = {
     
         GameState.gameObjects.forEach(obj => {
             if (obj instanceof Circle) {
-                let accelX = ios ? -motion.accelX : motion.accelX;
+                let accelX = ios ? motion.accelX : -motion.accelX;
                 let accelY = ios ? -motion.accelY : motion.accelY;
     
                 // Initial tilt force
@@ -132,8 +132,8 @@ const MotionManager = {
                 }
     
                 // Clamp to max force
-                tiltForceX = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceX));
-                tiltForceY = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceY));
+                //tiltForceX = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceX));
+                //tiltForceY = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceY));
     
                 // Apply force
                 obj.vx += tiltForceX * GameState.secondsPassed;
