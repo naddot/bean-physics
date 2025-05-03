@@ -21,7 +21,6 @@ body {
     overscroll-behavior-y: contain; /* Allows pull-to-refresh without scrolling */
 }
 
-
 /* Full-screen responsive canvas */
 canvas {
     width: 100vw;
@@ -30,6 +29,7 @@ canvas {
     position: absolute;
     top: 0;
     left: 0;
+    z-index: 0;
 }
 /* Permission button styling */
 #requestPermissionButton {
@@ -55,19 +55,14 @@ canvas {
 
 /* Button positioning and styling */
 #spawnButton {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     padding: 12px 25px;
-    background: #6f4f1f; /* Coffee color */
+    background: #6f4f1f;
     color: white;
     border: none;
     border-radius: 8px;
     font-size: 18px;
     cursor: pointer;
     transition: background 0.3s ease;
-    z-index: 10; /* Ensures it stays above the canvas */
 }
 
 #spawnButton:hover {
@@ -106,34 +101,40 @@ canvas {
     }
 }
 
-#milestoneButton {
+.button-wrapper {
     position: absolute;
-    top: calc(50% + 70px); /* just below the bean button */
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    z-index: 10;
+}
+
+/* Sparkly milestone button */
+#milestoneButton {
     display: inline-block;
     padding: 12px 25px;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
     color: white;
     background: linear-gradient(270deg, #ff00cc, #3333ff, #00ffee, #ffcc00, #ff0077);
-    background-size: 1000% 1000%;
+    background-size: 600% 600%;
     border: none;
     border-radius: 10px;
     text-align: center;
     text-decoration: none;
-    z-index: 20; /* must be higher than canvas and other UI */
     animation: rainbowFlow 8s ease infinite;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s ease;
-    pointer-events: auto;
 }
 
 #milestoneButton:hover {
     transform: scale(1.05);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
 }
-
 
 @keyframes rainbowFlow {
     0% { background-position: 0% 50%; }
