@@ -108,9 +108,10 @@ canvas {
 
 #milestoneButton {
     position: absolute;
-    top: calc(50% + 70px); /* Just below the spawn button */
+    top: calc(50% + 70px); /* just below the bean button */
     left: 50%;
     transform: translateX(-50%);
+    display: inline-block;
     padding: 12px 25px;
     font-size: 18px;
     font-weight: bold;
@@ -121,16 +122,18 @@ canvas {
     border-radius: 10px;
     text-align: center;
     text-decoration: none;
-    z-index: 10;
+    z-index: 20; /* must be higher than canvas and other UI */
     animation: rainbowFlow 8s ease infinite;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     transition: transform 0.2s ease;
+    pointer-events: auto;
 }
 
 #milestoneButton:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 18px rgba(0,0,0,0.3);
 }
+
 
 @keyframes rainbowFlow {
     0% { background-position: 0% 50%; }
