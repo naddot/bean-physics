@@ -61,6 +61,8 @@ flowchart LR
 
 No build step is required for production, and local dev can use Vite.
 
+Ignored local artifacts are defined in `.gitignore` (for example `node_modules/` and `dist/`).
+
 1. Clone:
    - `git clone https://github.com/naddot/bean-physics`
 2. Open folder:
@@ -112,9 +114,9 @@ No build step is required for production, and local dev can use Vite.
 
 Core tuning lives in `src/config/config.js`:
 - `physics` - gravity, solver iterations, wall thickness
-- `bean` - spawn dynamics, bounce, drag, density, plus roast-driven expansion/density behavior
+- `bean` - spawn dynamics, bounce, drag, density, roast-driven expansion/density behavior, and nearby bean energy transfer
 - `mouse` - drag interaction and paddle dynamics (size, thickness, speed, scoop/throw strength)
-- `motion` - tilt/shake thresholds, gravity-vs-angle mapping, and tilt-rate force response
+- `motion` - tilt/shake thresholds, smoothed gravity-vs-angle mapping, and softened tilt-rate force response
 - `analytics` - sample rate, history lengths, curve constants
 - `temperature` - ambient/max temp and curve gamma
 - `roastThresholds`, `roastColors`, `roastStages` - roast progression model
@@ -153,6 +155,7 @@ Required IAM:
 - Session data is in-memory only (no persistence)
 - Very high bean counts reduce FPS
 - Mobile sensor behavior varies by browser/device
+- Roast stages and transfer rates are stylized approximations, not a calibrated roasting model
 
 ## Troubleshooting
 

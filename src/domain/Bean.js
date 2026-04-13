@@ -6,6 +6,7 @@ export class Bean {
         this.config = config;
         this.totalForce = 0;
         this.colorIndex = 0;
+        this.startColor = startColor;
         this.color = startColor;
         this.darkerColor = darkenHexColor(startColor, 20);
         this.currentScale = 1;
@@ -17,14 +18,28 @@ export class Bean {
     applyCollisionEnergy(energyDelta, roastModel) {
         this.totalForce += Math.max(0, energyDelta);
         const progress = roastModel.getRoastProgress(this.totalForce);
-        const scaled = progress * (this.config.roastColors.length - 1);
-        const lower = Math.floor(scaled);
-        const upper = Math.min(this.config.roastColors.length - 1, lower + 1);
-        const mix = scaled - lower;
+        const tempC = roastModel.getTemperatureCFromForce(this.totalForce);
+        const dryingStartC = this.config.roastStages[0]?.minC ?? this.config.temperature.ambientC;
 
-        this.colorIndex = Math.round(scaled);
-        this.color = interpolateHexColor(this.config.roastColors[lower], this.config.roastColors[upper], mix);
-        this.darkerColor = darkenHexColor(this.color, 20);
+        if (tempC < dryingStartC) {
+            this.colorIndex = 0;
+            this.color = this.startColor;
+            this.darkerColor = darkenHexColor(this.startColor, 20);
+        } else {
+            const colorProgress = clamp(
+                (tempC - dryingStartC) / Math.max(1, this.config.temperature.maxRoastC - dryingStartC),
+                0,
+                1
+            );
+            const scaled = colorProgress * (this.config.roastColors.length - 1);
+            const lower = Math.floor(scaled);
+            const upper = Math.min(this.config.roastColors.length - 1, lower + 1);
+            const mix = scaled - lower;
+
+            this.colorIndex = Math.round(scaled);
+            this.color = interpolateHexColor(this.config.roastColors[lower], this.config.roastColors[upper], mix);
+            this.darkerColor = darkenHexColor(this.color, 20);
+        }
         this.applyRoastPhysics(progress);
     }
 

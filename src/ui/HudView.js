@@ -63,7 +63,7 @@ export class HudView {
         ctx.restore();
     }
 
-    draw(metrics, beanCount, canvasWidth) {
+    draw(metrics, beanCount, canvasWidth, isMakeBeanPressed = false) {
         const ctx = this.ctx;
         const L = this.hudLayout.compute(canvasWidth);
         const compactScale = L.mode === "mobile" ? clamp((L.headerWidth - 40) / 360, 0.82, 1) : 1;
@@ -142,14 +142,14 @@ export class HudView {
             this.drawEnergyCurve(metrics, L.graphX, graphTop + 62, L.graphWidth, this.config.hud.graphHeight);
         }
 
-        this.drawHudButton(L.makeBeanRect, "Make bean");
+        this.drawHudButton(L.makeBeanRect, "Make bean", isMakeBeanPressed);
     }
 
-    drawHudButton(rect, label) {
+    drawHudButton(rect, label, isPressed = false) {
         const ctx = this.ctx;
         const buttonScale = clamp(rect.width / 140, 0.84, 1);
-        ctx.fillStyle = "#7b5821";
-        ctx.strokeStyle = "#9a7233";
+        ctx.fillStyle = isPressed ? "#a06f24" : "#7b5821";
+        ctx.strokeStyle = isPressed ? "#c79343" : "#9a7233";
         ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
         ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
         ctx.fillStyle = "#ffffff";

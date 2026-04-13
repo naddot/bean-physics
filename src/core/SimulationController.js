@@ -19,6 +19,7 @@ export class SimulationController {
                 tiltX: 0,
                 tiltY: 1,
                 tiltStrength: 1,
+                gravityMagnitude: 0,
                 tiltRateX: 0,
                 tiltRateY: 0,
                 lastTiltX: 0,
@@ -190,9 +191,12 @@ export class SimulationController {
 
     onMotion = (event) => {
         const now = performance.now();
-        const ax = event.accelerationIncludingGravity?.x ?? 0;
-        const ay = event.accelerationIncludingGravity?.y ?? 0;
+        const rawAX = event.accelerationIncludingGravity?.x ?? 0;
+        const rawAY = event.accelerationIncludingGravity?.y ?? 0;
         const az = event.accelerationIncludingGravity?.z ?? 0;
+        const accelSmooth = this.config.motion.accelSmoothing ?? 0.85;
+        const ax = (this.state.motion.accelX * accelSmooth) + (rawAX * (1 - accelSmooth));
+        const ay = (this.state.motion.accelY * accelSmooth) + (rawAY * (1 - accelSmooth));
         this.state.motion.accelX = ax;
         this.state.motion.accelY = ay;
 
@@ -204,7 +208,11 @@ export class SimulationController {
 
         this.state.motion.tiltX = directionalX;
         this.state.motion.tiltY = directionalY;
-        this.state.motion.tiltStrength = Math.pow(tiltRatio, this.config.motion.uprightBoostExponent);
+        const targetTiltStrength = Math.pow(tiltRatio, this.config.motion.uprightBoostExponent);
+        const tiltStrengthSmooth = this.config.motion.tiltStrengthSmoothing ?? 0.82;
+        this.state.motion.tiltStrength =
+            (this.state.motion.tiltStrength * tiltStrengthSmooth) +
+            (targetTiltStrength * (1 - tiltStrengthSmooth));
 
         const dtSec = this.state.motion.lastMotionAt > 0 ? Math.max(0.001, (now - this.state.motion.lastMotionAt) / 1000) : 0.016;
         const rawTiltRateX = (directionalX - this.state.motion.lastTiltX) / dtSec;
@@ -243,9 +251,13 @@ export class SimulationController {
         const gravityMagnitude =
             this.config.motion.gravityWhenFlat +
             ((this.config.motion.gravityWhenUpright - this.config.motion.gravityWhenFlat) * this.state.motion.tiltStrength);
+        const gravitySmooth = this.config.motion.gravitySmoothing ?? 0.88;
+        this.state.motion.gravityMagnitude =
+            (this.state.motion.gravityMagnitude * gravitySmooth) +
+            (gravityMagnitude * (1 - gravitySmooth));
         this.physicsWorld.setGravityVector(
-            this.state.motion.tiltX * gravityMagnitude,
-            this.state.motion.tiltY * gravityMagnitude
+            this.state.motion.tiltX * this.state.motion.gravityMagnitude,
+            this.state.motion.tiltY * this.state.motion.gravityMagnitude
         );
 
         const forceScale = this.config.motion.tiltForceScale * (0.4 + (this.state.motion.tiltStrength * 2.0));
@@ -293,13 +305,19 @@ export class SimulationController {
         this.updateMousePaddle(timeStamp);
         this.applyMouseForces();
         this.physicsWorld.update(dtMs);
+        this.beanManager.applyNeighborEnergyTransfer(dtMs);
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.beanManager.forEach((bean) => this.hudView.drawBean(bean));
         this.hudView.drawMousePaddle(this.state.paddle);
         this.analyticsService.update(this.beanManager.getAll(), timeStamp);
         this.runtimeChecks?.runAnalyticsChecks(this.analyticsService.getMetrics(), this.beanManager.getAll().length);
-        this.hudView.draw(this.analyticsService.getMetrics(), this.beanManager.getAll().length, this.canvas.width);
+        this.hudView.draw(
+            this.analyticsService.getMetrics(),
+            this.beanManager.getAll().length,
+            this.canvas.width,
+            this.state.activeHudButton === "makeBean"
+        );
 
         window.requestAnimationFrame((ts) => this.loop(ts));
     }

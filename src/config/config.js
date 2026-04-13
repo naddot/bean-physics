@@ -18,6 +18,12 @@ export const CONFIG = {
             interpolation: 0.2,
             minScaleDelta: 0.002,
             minDensityDelta: 0.00001
+        },
+        energyTransfer: {
+            enabled: true,
+            radius: 40,
+            ratePerSecond: 0.12,
+            maxPerPairPerSecond: 220
         }
     },
     spawn: { intervalMs: 90 },
@@ -45,18 +51,21 @@ export const CONFIG = {
         }
     },
     motion: {
-        tiltForceScale: 0.0006,
-        tiltRateForceScale: 0.0045,
-        shakeThreshold: 25,
+        tiltForceScale: 0.00024,
+        tiltRateForceScale: 0.0011,
+        shakeThreshold: 32,
         shakeCooldownMs: 1000,
-        shakeForceScale: 0.08,
-        gravityWhenFlat: 0.03,
-        gravityWhenUpright: 1.0,
-        uprightBoostExponent: 1.25,
-        tiltRateSmoothing: 0.7
+        shakeForceScale: 0.055,
+        gravityWhenFlat: 0.035,
+        gravityWhenUpright: 0.5,
+        uprightBoostExponent: 1.55,
+        tiltRateSmoothing: 0.9,
+        accelSmoothing: 0.88,
+        tiltStrengthSmoothing: 0.86,
+        gravitySmoothing: 0.9
     },
     analytics: { histogramBins: 8, sampleIntervalMs: 250, maxHistoryPoints: 180, energyImpactScale: 40, rorLookbackMs: 15000 },
-    temperature: { ambientC: 20, maxRoastC: 230, curveGamma: 0.85 },
+    temperature: { ambientC: 20, maxRoastC: 230, curveGamma: 1.0 },
     roastStages: [
         { key: "drying", label: "Drying", minC: 100, maxC: 160 },
         { key: "maillard", label: "Maillard", minC: 160, maxC: 196 },
@@ -64,7 +73,7 @@ export const CONFIG = {
         { key: "development", label: "Development", minC: 205, maxC: 224 },
         { key: "secondCrack", label: "Second Crack", minC: 224, maxC: 260 }
     ],
-    roastThresholds: [500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 500000, 700000, 820000, 900000, 950000, 1000000, 1000500, 1000750, 1000950, 1001000],
+    roastThresholds: [800, 1800, 3200, 5500, 9000, 14000, 21000, 30000, 42000, 58000, 76000, 96000, 118000, 142000, 168000, 196000, 226000, 258000, 300000],
     roastColors: ["#d3fc8d", "#e0fc8d", "#fcfc8d", "#ffff61", "#ebcc34", "#ebb134", "#d19b26", "#d68418", "#d9800d", "#ad6103", "#8c4e03", "#995829", "#804f2d", "#6b462b", "#5c3e29", "#453021", "#36271c", "#1f1611", "#0d0a07"],
     startingColors: ["#5cff82", "#67e083", "#5cbd73", "#73bd5c", "#98ed7e", "#b2ed7e", "#c3fa93", "#c7e87b", "#e6fc8d", "#8dfcb0"],
     hud: { headerX: 10, headerY: 10, headerHeight: 166, margin: 12, graphHeight: 52, controlsReserveWidth: 300, buttonWidth: 152, buttonHeight: 38, buttonGap: 10 },
