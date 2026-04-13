@@ -65,7 +65,7 @@ export const CONFIG = {
         gravitySmoothing: 0.9
     },
     analytics: { histogramBins: 8, sampleIntervalMs: 250, maxHistoryPoints: 180, energyImpactScale: 40, rorLookbackMs: 15000 },
-    temperature: { ambientC: 20, maxRoastC: 230, curveGamma: 1.0 },
+    temperature: { ambientC: 20, maxRoastC: 248, curveGamma: 1.0 },
     roastStages: [
         { key: "drying", label: "Drying", minC: 100, maxC: 160 },
         { key: "maillard", label: "Maillard", minC: 160, maxC: 196 },
@@ -74,7 +74,31 @@ export const CONFIG = {
         { key: "secondCrack", label: "Second Crack", minC: 224, maxC: 260 }
     ],
     roastThresholds: [800, 1800, 3200, 5500, 9000, 14000, 21000, 30000, 42000, 58000, 76000, 96000, 118000, 142000, 168000, 196000, 226000, 258000, 300000],
-    roastColors: ["#d3fc8d", "#e0fc8d", "#fcfc8d", "#ffff61", "#ebcc34", "#ebb134", "#d19b26", "#d68418", "#d9800d", "#ad6103", "#8c4e03", "#995829", "#804f2d", "#6b462b", "#5c3e29", "#453021", "#36271c", "#1f1611", "#0d0a07"],
+    roastColors: [
+        "#d9f9a2",
+        "#e5f6a3",
+        "#f0f2a1",
+        "#f5e88e",
+        "#efd672",
+        "#e6c35f",
+        "#d9ad4e",
+        "#cc9644",
+        "#bf833e",
+        "#b17338",
+        "#a26534",
+        "#965a31",
+        "#8b522f",
+        "#804a2d",
+        "#74422a",
+        "#673a27",
+        "#5a3224",
+        "#4d2b21",
+        "#41231c",
+        "#321a16",
+        "#24120f",
+        "#130b08",
+        "#070403"
+    ],
     startingColors: ["#5cff82", "#67e083", "#5cbd73", "#73bd5c", "#98ed7e", "#b2ed7e", "#c3fa93", "#c7e87b", "#e6fc8d", "#8dfcb0"],
     hud: { headerX: 10, headerY: 10, headerHeight: 166, margin: 12, graphHeight: 52, controlsReserveWidth: 300, buttonWidth: 152, buttonHeight: 38, buttonGap: 10 },
     draw: { beanBaseRadius: 12 }
