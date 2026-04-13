@@ -64,9 +64,9 @@ export class AnalyticsService {
 
             const tempC = this.roastModel.getTemperatureCFromForce(bean.totalForce);
             totalTempC += tempC;
-            const stage = this.roastModel.getRoastStageForTemp(tempC);
-            if (stage.key === "warmup") warmupCount += 1;
-            else stageCounts[stage.key] += 1;
+            const stageKey = this.roastModel.getRoastStageForTemp(tempC).key;
+            if (stageKey === "warmup") warmupCount += 1;
+            else stageCounts[stageKey] += 1;
 
             const bin = Math.min(
                 this.config.analytics.histogramBins - 1,

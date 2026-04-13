@@ -11,6 +11,7 @@ export class SimulationController {
         this.runtimeChecks = runtimeChecks;
         this.state = {
             spawnTimer: null,
+            spawnStartedAt: 0,
             mouse: { active: false, x: 0, y: 0, vx: 0, vy: 0 },
             paddle: { active: false, x: 0, y: 0, radius: 0, angle: 0, startedAt: 0, lastUpdatedAt: 0 },
             motion: {
@@ -54,16 +55,33 @@ export class SimulationController {
         if (event && event.preventDefault) event.preventDefault();
         if (this.state.spawnTimer !== null) return;
         this.beanManager.createBean(this.canvas.width, this.canvas.height);
-        this.state.spawnTimer = window.setInterval(
-            () => this.beanManager.createBean(this.canvas.width, this.canvas.height),
-            this.config.spawn.intervalMs
-        );
+        this.state.spawnStartedAt = performance.now();
+        this.scheduleNextSpawnTick();
     };
 
     stopSpawnStream = () => {
         if (this.state.spawnTimer === null) return;
-        window.clearInterval(this.state.spawnTimer);
+        window.clearTimeout(this.state.spawnTimer);
         this.state.spawnTimer = null;
+        this.state.spawnStartedAt = 0;
+    };
+
+    scheduleNextSpawnTick = () => {
+        const elapsedSec = Math.max(0, (performance.now() - this.state.spawnStartedAt) / 1000);
+        const acceleration = this.config.spawn.accelerationPerSecond ?? 0;
+        const minInterval = this.config.spawn.minIntervalMs ?? this.config.spawn.intervalMs;
+        const nextInterval = Math.max(
+            minInterval,
+            this.config.spawn.intervalMs - (elapsedSec * acceleration)
+        );
+        this.state.spawnTimer = window.setTimeout(() => {
+            this.beanManager.createBean(this.canvas.width, this.canvas.height);
+            if (this.state.activeHudButton === "makeBean") {
+                this.scheduleNextSpawnTick();
+            } else {
+                this.state.spawnTimer = null;
+            }
+        }, nextInterval);
     };
 
     isPointInRect(x, y, rect) {

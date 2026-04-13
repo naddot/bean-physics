@@ -16,24 +16,55 @@ export class Bean {
     }
 
     applyCollisionEnergy(energyDelta, roastModel) {
-        this.totalForce += Math.max(0, energyDelta);
+        const cappedDelta = clamp(
+            Math.max(0, energyDelta),
+            0,
+            this.config.bean.maxEnergyPerUpdate ?? Number.POSITIVE_INFINITY
+        );
+        this.totalForce += cappedDelta;
         const progress = roastModel.getRoastProgress(this.totalForce);
         const tempC = roastModel.getTemperatureCFromForce(this.totalForce);
         const dryingStartC = this.config.roastStages[0]?.minC ?? this.config.temperature.ambientC;
+        const browningStartC = this.config.temperature.browningStartC ?? 165;
+        const charStartC = this.config.temperature.charStartC ?? 255;
+        const maxIndex = this.config.roastColors.length - 1;
+        const brownStartIndex = clamp(
+            this.config.roastColoring?.brownStartIndex ?? Math.floor(maxIndex * 0.35),
+            1,
+            Math.max(1, maxIndex - 1)
+        );
+        const charStartIndex = clamp(
+            this.config.roastColoring?.charStartIndex ?? Math.max(brownStartIndex + 1, maxIndex - 2),
+            brownStartIndex + 1,
+            maxIndex
+        );
 
         if (tempC < dryingStartC) {
             this.colorIndex = 0;
             this.color = this.startColor;
             this.darkerColor = darkenHexColor(this.startColor, 20);
         } else {
-            const colorProgress = clamp(
-                (tempC - dryingStartC) / Math.max(1, this.config.temperature.maxRoastC - dryingStartC),
-                0,
-                1
-            );
-            const scaled = colorProgress * (this.config.roastColors.length - 1);
+            let scaled = 0;
+            if (tempC < browningStartC) {
+                const earlyProgress = clamp((tempC - dryingStartC) / Math.max(1, browningStartC - dryingStartC), 0, 1);
+                scaled = earlyProgress * brownStartIndex;
+            } else if (tempC < charStartC) {
+                const darkProgress = clamp(
+                    (tempC - browningStartC) / Math.max(1, charStartC - browningStartC),
+                    0,
+                    1
+                );
+                scaled = brownStartIndex + (darkProgress * (charStartIndex - brownStartIndex));
+            } else {
+                const charProgress = clamp(
+                    (tempC - charStartC) / Math.max(1, this.config.temperature.maxRoastC - charStartC),
+                    0,
+                    1
+                );
+                scaled = charStartIndex + (charProgress * (maxIndex - charStartIndex));
+            }
             const lower = Math.floor(scaled);
-            const upper = Math.min(this.config.roastColors.length - 1, lower + 1);
+            const upper = Math.min(maxIndex, lower + 1);
             const mix = scaled - lower;
 
             this.colorIndex = Math.round(scaled);
