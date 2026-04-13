@@ -1,9 +1,49 @@
 export const CONFIG = {
     runtimeChecks: { enabled: true, logIntervalMs: 3000 },
     physics: { gravityY: 0.9, positionIterations: 8, velocityIterations: 6, constraintIterations: 2, wallThickness: 80 },
-    bean: { radius: 16, restitution: 0.75, friction: 0.03, frictionAir: 0.008, density: 0.0017, initialVelocityX: 8, initialVelocityY: 7 },
+    bean: {
+        radius: 16,
+        restitution: 0.28,
+        friction: 0.12,
+        frictionAir: 0.02,
+        density: 0.0024,
+        initialVelocityX: 4.5,
+        initialVelocityY: 4.2,
+        roastPhysics: {
+            enabled: true,
+            maxExpansionScale: 1.07,
+            minDensityFactor: 0.88,
+            minRestitutionFactor: 0.8,
+            maxFrictionAirFactor: 1.15,
+            interpolation: 0.2,
+            minScaleDelta: 0.002,
+            minDensityDelta: 0.00001
+        }
+    },
     spawn: { intervalMs: 90 },
-    mouse: { influenceRadius: 120, dragBoostPerPixel: 0.11, maxDragBoost: 2.8, forceScale: 0.0045, velocityForceScale: 0.00024, clickBurstRadius: 70, clickBurstForceScale: 0.0095 },
+    mouse: {
+        influenceRadius: 120,
+        dragBoostPerPixel: 0.11,
+        maxDragBoost: 2.8,
+        forceScale: 0.0045,
+        velocityForceScale: 0.00024,
+        paddle: {
+            enabled: true,
+            lifeMs: 950,
+            expandMs: 170,
+            maxRadius: 132,
+            startRadius: 10,
+            bladeCount: 4,
+            bladeArcWidthRad: 0.58,
+            bladeThickness: 22,
+            angularSpeedRadPerSec: 4.8,
+            tangentialForceScale: 0.0056,
+            radialForceScale: 0.002,
+            scoopVelocityBase: 8.5,
+            scoopVelocityBoost: 9.5,
+            maxBeanSpeed: 18
+        }
+    },
     motion: {
         tiltForceScale: 0.0006,
         tiltRateForceScale: 0.0045,

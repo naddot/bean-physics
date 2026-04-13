@@ -56,7 +56,6 @@ flowchart LR
 - `src/util/color.js` - color helpers
 - `src/util/time.js` - time formatting helpers
 - `script.js` - legacy/inactive experiment
-- `test.js` - placeholder
 
 ## Setup
 
@@ -88,10 +87,10 @@ No build step is required for production, and local dev can use Vite.
 
 - HUD **Make bean** button:
   - click/hold to stream beans
-- HUD **Debug** button:
-  - toggle debug overlay
 - Canvas interaction:
-  - mouse/touch drag applies push forces
+  - hold mouse/touch to keep a rotating steel paddle active
+  - paddle follows the pointer while held and stirs/throws beans
+  - release ends the paddle interaction
 - Mobile motion:
   - tilt changes gravity direction and strength (near-weightless when flat, stronger gravity when upright)
   - rapid orientation changes add extra acceleration (tilt-rate response)
@@ -113,8 +112,8 @@ No build step is required for production, and local dev can use Vite.
 
 Core tuning lives in `src/config/config.js`:
 - `physics` - gravity, solver iterations, wall thickness
-- `bean` - spawn dynamics, bounce, drag, density
-- `mouse` - interaction radius/force
+- `bean` - spawn dynamics, bounce, drag, density, plus roast-driven expansion/density behavior
+- `mouse` - drag interaction and paddle dynamics (size, thickness, speed, scoop/throw strength)
 - `motion` - tilt/shake thresholds, gravity-vs-angle mapping, and tilt-rate force response
 - `analytics` - sample rate, history lengths, curve constants
 - `temperature` - ambient/max temp and curve gamma

@@ -7,7 +7,7 @@ export class HudView {
         this.config = config;
         this.ctx = ctx;
         this.hudLayout = hudLayout;
-        this.buttonRects = { makeBean: null, debug: null };
+        this.buttonRects = { makeBean: null };
         this.shapePath = new Path2D(BEAN_SHAPE_PATH);
         this.detailPath = new Path2D(BEAN_DETAIL_PATH);
     }
@@ -16,7 +16,7 @@ export class HudView {
         return this.buttonRects;
     }
 
-    drawBean(bean, debugEnabled) {
+    drawBean(bean) {
         const base = this.config.draw.beanBaseRadius;
         const ctx = this.ctx;
 
@@ -30,20 +30,49 @@ export class HudView {
         ctx.strokeStyle = bean.darkerColor;
         ctx.lineWidth = 1;
         ctx.stroke(this.detailPath);
-        if (debugEnabled) {
-            ctx.beginPath();
-            ctx.arc(base, base, base, 0, Math.PI * 2);
-            ctx.strokeStyle = "rgba(255,0,0,0.35)";
-            ctx.stroke();
-        }
         ctx.restore();
     }
 
-    draw(metrics, beanCount, debugEnabled, canvasWidth) {
+    drawMousePaddle(paddleState) {
+        if (!paddleState?.active) return;
+        const paddleCfg = this.config.mouse.paddle;
+        if (!paddleCfg?.enabled) return;
+        const ctx = this.ctx;
+        const bladeCount = Math.max(1, paddleCfg.bladeCount);
+        const armLength = Math.max(12, paddleState.radius - 8);
+
+        ctx.save();
+        ctx.translate(paddleState.x, paddleState.y);
+
+        ctx.strokeStyle = "rgba(112,122,134,0.95)";
+        ctx.lineWidth = Math.max(3, paddleCfg.bladeThickness * 0.5);
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        for (let i = 0; i < bladeCount; i += 1) {
+            const a = paddleState.angle + ((Math.PI * 2 * i) / bladeCount);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(a) * armLength, Math.sin(a) * armLength);
+        }
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(86,95,106,0.98)";
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    draw(metrics, beanCount, canvasWidth) {
         const ctx = this.ctx;
         const L = this.hudLayout.compute(canvasWidth);
+        const compactScale = L.mode === "mobile" ? clamp((L.headerWidth - 40) / 360, 0.82, 1) : 1;
+        const titleFont = `bold ${Math.round(14 * compactScale)}px Arial`;
+        const bodyFont = `${Math.round(12 * compactScale)}px Arial`;
+        const tempFont = `bold ${Math.round(18 * compactScale)}px Arial`;
+        const rorFont = `bold ${Math.round(16 * compactScale)}px Arial`;
+        const ultraNarrow = L.mode === "mobile" && L.isUltraNarrow;
         this.buttonRects.makeBean = L.makeBeanRect;
-        this.buttonRects.debug = L.debugRect;
 
         ctx.fillStyle = "rgba(14,18,24,0.86)";
         ctx.fillRect(L.headerX, L.headerY, L.headerWidth, L.headerHeight);
@@ -51,67 +80,80 @@ export class HudView {
         ctx.strokeRect(L.headerX, L.headerY, L.headerWidth, L.headerHeight);
 
         ctx.fillStyle = "#e8edf5";
-        ctx.font = "bold 14px Arial";
-        ctx.fillText("Roasting Console", L.leftX, L.topY);
+        ctx.font = titleFont;
+        if (L.mode === "mobile") {
+            ctx.fillText("Roasting Console", L.leftX, L.topY + 52);
+        } else {
+            ctx.fillText("Roasting Console", L.leftX, L.topY);
+        }
 
         ctx.fillStyle = "#dbe2ec";
-        ctx.font = "12px Arial";
-        ctx.fillText(`Time ${formatDuration(metrics.elapsedRoastMs)}`, L.leftX, L.topY + 20);
-        ctx.fillText(`Beans ${beanCount}`, L.leftX + 110, L.topY + 20);
-        ctx.fillText(`Energy ${Math.round(metrics.totalEnergy)}`, Math.min(L.leftX + 200, L.controlsLeft - 100), L.topY + 20);
+        ctx.font = bodyFont;
+        const statsStartY = L.mode === "mobile" ? L.topY + 70 : L.topY;
+        ctx.fillText(`Time ${formatDuration(metrics.elapsedRoastMs)}`, L.leftX, statsStartY + 20);
+        ctx.fillText(`Beans ${beanCount}`, L.leftX + Math.round(110 * compactScale), statsStartY + 20);
+        if (ultraNarrow) {
+            ctx.fillText(`Energy ${Math.round(metrics.totalEnergy)}`, L.leftX, statsStartY + 36);
+        } else {
+            ctx.fillText(`Energy ${Math.round(metrics.totalEnergy)}`, Math.min(L.leftX + Math.round(200 * compactScale), L.controlsLeft - Math.round(100 * compactScale)), statsStartY + 20);
+        }
 
-        ctx.font = "bold 18px Arial";
+        const metricYOffset = ultraNarrow ? 16 : 0;
+        const metricBlockTop = statsStartY + metricYOffset;
+
+        ctx.font = tempFont;
         ctx.fillStyle = "#f2f6ff";
-        ctx.fillText(`${metrics.averageTempC.toFixed(1)} C`, L.leftX, L.topY + 44);
-        ctx.font = "12px Arial";
+        ctx.fillText(`${metrics.averageTempC.toFixed(1)} C`, L.leftX, metricBlockTop + 44);
+        ctx.font = bodyFont;
         ctx.fillStyle = "#cdd7e5";
-        ctx.fillText("Batch Temp", L.leftX, L.topY + 59);
+        ctx.fillText("Batch Temp", L.leftX, metricBlockTop + 59);
 
         const rorColor = metrics.rorCPerMin >= 0 ? "#ffb347" : "#8dc7ff";
         ctx.fillStyle = rorColor;
-        ctx.font = "bold 16px Arial";
-        ctx.fillText(`${metrics.rorCPerMin.toFixed(1)} C/min`, L.leftX + 130, L.topY + 44);
-        ctx.font = "12px Arial";
+        ctx.font = rorFont;
+        ctx.fillText(`${metrics.rorCPerMin.toFixed(1)} C/min`, L.leftX + Math.round(130 * compactScale), metricBlockTop + 44);
+        ctx.font = bodyFont;
         ctx.fillStyle = "#cdd7e5";
-        ctx.fillText("RoR", L.leftX + 130, L.topY + 59);
+        ctx.fillText("RoR", L.leftX + Math.round(130 * compactScale), metricBlockTop + 59);
 
-        const stageLabelX = Math.min(L.leftX + 220, L.controlsLeft - 120);
+        const stageLabelX = Math.min(L.leftX + Math.round(220 * compactScale), L.controlsLeft - Math.round(120 * compactScale));
         ctx.fillStyle = "#e6edf8";
-        ctx.fillText(`Stage: ${metrics.dominantStageLabel}`, stageLabelX, L.topY + 44);
-        ctx.fillText(`Consistency: ${(metrics.consistency * 100).toFixed(1)}%`, stageLabelX, L.topY + 59);
+        ctx.fillText(`Stage: ${metrics.dominantStageLabel}`, stageLabelX, metricBlockTop + 44);
+        ctx.fillText(`Consistency: ${(metrics.consistency * 100).toFixed(1)}%`, stageLabelX, metricBlockTop + 59);
 
         ctx.fillStyle = metrics.averageColor;
-        ctx.fillRect(L.leftX, L.topY + 68, 20, 12);
+        ctx.fillRect(L.leftX, metricBlockTop + 68, 20, 12);
         ctx.strokeStyle = "rgba(255,255,255,0.75)";
-        ctx.strokeRect(L.leftX, L.topY + 68, 20, 12);
+        ctx.strokeRect(L.leftX, metricBlockTop + 68, 20, 12);
         ctx.fillStyle = "#dbe2ec";
-        ctx.fillText(`Avg Colour ${metrics.averageColor}`, L.leftX + 26, L.topY + 78);
+        ctx.fillText(`Avg Colour ${metrics.averageColor}`, L.leftX + 26, metricBlockTop + 78);
 
-        this.drawStageDistribution(metrics, L.leftX, L.topY + 88, L.stageBarWidth, 12, beanCount);
+        this.drawStageDistribution(metrics, L.leftX, metricBlockTop + 88, L.stageBarWidth, 12, beanCount);
         const stageSummary = this.config.roastStages.map((stage) => `${stage.label.split(" ")[0]} ${metrics.stageCounts[stage.key]}`).join("  ");
         ctx.fillStyle = "#b9c4d5";
-        ctx.fillText(stageSummary, L.leftX, L.topY + 114);
+        ctx.fillText(stageSummary, L.leftX, metricBlockTop + 114);
 
-        this.drawColorDistribution(metrics, L.graphX, L.topY + 22, L.graphWidth, this.config.hud.graphHeight);
-        this.drawEnergyCurve(metrics, L.graphX, L.topY + 84, L.graphWidth, this.config.hud.graphHeight);
+        if (L.mode === "mobile") {
+            this.drawColorDistribution(metrics, L.graphX, metricBlockTop + 126, L.graphWidth, this.config.hud.graphHeight);
+            this.drawEnergyCurve(metrics, L.graphX, metricBlockTop + 186, L.graphWidth, this.config.hud.graphHeight);
+        } else {
+            const graphTop = L.mode === "tablet" ? (statsStartY + 74) : (L.topY + 22);
+            this.drawColorDistribution(metrics, L.graphX, graphTop, L.graphWidth, this.config.hud.graphHeight);
+            this.drawEnergyCurve(metrics, L.graphX, graphTop + 62, L.graphWidth, this.config.hud.graphHeight);
+        }
 
-        this.drawHudButton(L.makeBeanRect, "Make bean", "primary", debugEnabled);
-        this.drawHudButton(L.debugRect, debugEnabled ? "Debug: ON" : "Debug: OFF", "secondary", debugEnabled);
+        this.drawHudButton(L.makeBeanRect, "Make bean");
     }
 
-    drawHudButton(rect, label, mode, debugEnabled) {
+    drawHudButton(rect, label) {
         const ctx = this.ctx;
-        if (mode === "primary") {
-            ctx.fillStyle = "#7b5821";
-            ctx.strokeStyle = "#9a7233";
-        } else {
-            ctx.fillStyle = debugEnabled ? "#1f5a3d" : "#333333";
-            ctx.strokeStyle = debugEnabled ? "#2f7e58" : "#575757";
-        }
+        const buttonScale = clamp(rect.width / 140, 0.84, 1);
+        ctx.fillStyle = "#7b5821";
+        ctx.strokeStyle = "#9a7233";
         ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
         ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
         ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 14px Arial";
+        ctx.font = `bold ${Math.round(14 * buttonScale)}px Arial`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(label, rect.x + (rect.width / 2), rect.y + (rect.height / 2));
