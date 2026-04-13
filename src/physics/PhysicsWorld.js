@@ -78,4 +78,22 @@ export class PhysicsWorld {
         const { World } = this.Matter;
         World.remove(this.engine.world, body);
     }
+
+    createGrinderWheelBody(x, y, radius) {
+        const { Bodies, World } = this.Matter;
+        const body = Bodies.circle(x, y, radius, {
+            isStatic: true,
+            restitution: 0.08,
+            friction: 0.85,
+            frictionStatic: 0.95
+        });
+        World.add(this.engine.world, body);
+        return body;
+    }
+
+    setBodyTransform(body, x, y, angle = 0) {
+        const { Body } = this.Matter;
+        Body.setPosition(body, { x, y });
+        Body.setAngle(body, angle);
+    }
 }

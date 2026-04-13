@@ -44,14 +44,22 @@ flowchart LR
 - `src/main.js` - module entrypoint
 - `src/app/App.js` - application bootstrap
 - `src/core/SimulationController.js` - orchestration loop/controller
+- `src/core/forces/` - motion, mouse, and paddle force systems
+- `src/core/simulation/SpawnStreamController.js` - bean stream cadence controller
+- `src/core/audio/FirstCrackPopTrigger.js` - first-crack audio event trigger
+- `src/core/grinder/GrinderSystem.js` - grinder phase logic, crushing, and powder particles
 - `src/physics/PhysicsWorld.js` - Matter.js adapter
 - `src/domain/Bean.js` - bean entity
 - `src/domain/BeanManager.js` - bean collection/lifecycle
+- `src/domain/bean/` - bean policy/state services (energy transfer, cleanup, combustion, roast state)
 - `src/roast/RoastModel.js` - roast/temperature model
 - `src/analytics/AnalyticsService.js` - runtime metrics and histories
 - `src/input/InputController.js` - input binding layer
 - `src/ui/HudView.js` - console rendering + HUD buttons/charts
 - `src/ui/HudLayout.js` - deterministic HUD geometry
+- `src/ui/HudChartsRenderer.js` - chart rendering primitives
+- `src/ui/HudInteractionModel.js` - HUD button hitbox model
+- `src/render/` - scene renderers (beans, paddle, grinder)
 - `src/config/config.js` - runtime constants and roast palette
 - `src/util/color.js` - color helpers
 - `src/util/time.js` - time formatting helpers
@@ -89,10 +97,20 @@ Ignored local artifacts are defined in `.gitignore` (for example `node_modules/`
 
 - HUD **Make bean** button:
   - click/hold to stream beans
+- HUD **Start grinder** button:
+  - visible alongside **Make bean**
+  - enabled only when all beans are past Maillard
+  - click once to arm placement, then click on canvas to place grinder wheels
+  - after placement, wheels follow the pointer
+  - hold pointer down to close wheels together; release to open
 - Canvas interaction:
   - hold mouse/touch to keep a rotating steel paddle active
   - paddle follows the pointer while held and stirs/throws beans
   - release ends the paddle interaction
+- Grinder behavior:
+  - beans are crushed only when both wheels are simultaneously touching
+  - crushed beans become untracked powder particles (sand-like), and no longer gain roast energy
+  - partially crushed output can be re-ground if it remains in the wheel path
 - Mobile motion:
   - tilt changes gravity direction and strength (near-weightless when flat, stronger gravity when upright)
   - rapid orientation changes add extra acceleration (tilt-rate response)
@@ -117,6 +135,8 @@ Core tuning lives in `src/config/config.js`:
 - `bean` - spawn dynamics, bounce, drag, density, roast-driven expansion/density behavior, and nearby bean energy transfer
 - `mouse` - drag interaction and paddle dynamics (size, thickness, speed, scoop/throw strength)
 - `motion` - tilt/shake thresholds, smoothed gravity-vs-angle mapping, and softened tilt-rate force response
+- `grinder` - wheel size, gap limits, close/open speed, and powder particle behavior
+- `audio.firstCrackPop` - first-crack micro-pop synthesis controls
 - `analytics` - sample rate, history lengths, curve constants
 - `temperature` - ambient/max temp and curve gamma
 - `roastThresholds`, `roastColors`, `roastStages` - roast progression model

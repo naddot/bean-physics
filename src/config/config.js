@@ -1,3 +1,48 @@
+function buildSmoothRoastPalette(total = 784) {
+    const anchors = [
+        "#D9F9A2",
+        "#F5E88E",
+        "#E6C35F",
+        "#CC9644",
+        "#B17338",
+        "#9C5F33",
+        "#86502E",
+        "#74422A",
+        "#6A3C28",
+        "#5A3224",
+        "#4A2820",
+        "#41231C",
+        "#321A16",
+        "#2A1613",
+        "#1C0E0B",
+        "#070403"
+    ];
+    const hexToRgb = (hex) => ({
+        r: Number.parseInt(hex.slice(1, 3), 16),
+        g: Number.parseInt(hex.slice(3, 5), 16),
+        b: Number.parseInt(hex.slice(5, 7), 16)
+    });
+    const rgbToHex = (r, g, b) =>
+        `#${Math.round(r).toString(16).padStart(2, "0")}${Math.round(g).toString(16).padStart(2, "0")}${Math.round(b).toString(16).padStart(2, "0")}`.toUpperCase();
+
+    const steps = Math.max(2, total);
+    const lastAnchor = anchors.length - 1;
+    return Array.from({ length: steps }, (_, i) => {
+        const t = i / (steps - 1);
+        const scaled = t * lastAnchor;
+        const left = Math.floor(scaled);
+        const right = Math.min(lastAnchor, left + 1);
+        const mix = scaled - left;
+        const a = hexToRgb(anchors[left]);
+        const b = hexToRgb(anchors[right]);
+        return rgbToHex(
+            a.r + ((b.r - a.r) * mix),
+            a.g + ((b.g - a.g) * mix),
+            a.b + ((b.b - a.b) * mix)
+        );
+    });
+}
+
 export const CONFIG = {
     runtimeChecks: { enabled: true, logIntervalMs: 3000 },
     physics: { gravityY: 0.9, positionIterations: 8, velocityIterations: 6, constraintIterations: 2, wallThickness: 80 },
@@ -37,6 +82,14 @@ export const CONFIG = {
             minMovementPx: 0.35,
             minSpeed: 0.03,
             stuckTimeoutMs: 14000
+        },
+        combustion: {
+            enabled: true,
+            triggerAverageTempC: 270,
+            durationMs: 1700,
+            minScaleFactor: 0.08,
+            spreadRadius: 68,
+            spreadChancePerSecond: 2.2
         }
     },
     spawn: { intervalMs: 90, minIntervalMs: 24, accelerationPerSecond: 70 },
@@ -82,7 +135,7 @@ export const CONFIG = {
             enabled: true,
             minIntervalMs: 55,
             gain: 0.55,
-            maxConcurrent: 5,
+            maxConcurrent: 50,
             minPitchHz: 580,
             maxPitchHz: 620,
             attackMs: 0.19,
@@ -100,58 +153,24 @@ export const CONFIG = {
         { key: "secondCrack", label: "Second Crack", minC: 238, maxC: 252 }
     ],
     roastThresholds: [800, 1800, 3200, 5500, 9000, 15000, 24000, 36000, 52000, 74000, 102000, 138000, 182000, 236000, 302000, 382000, 478000, 592000, 726000],
-    roastColoring: { brownStartIndex: 11, charStartIndex: 40 },
-    roastColors: [
-        "#d9f9a2",
-        "#e5f6a3",
-        "#f0f2a1",
-        "#f5e88e",
-        "#efd672",
-        "#e6c35f",
-        "#d9ad4e",
-        "#cc9644",
-        "#bf833e",
-        "#b17338",
-        "#a26534",
-        "#9c5f33",
-        "#965a31",
-        "#905630",
-        "#8b522f",
-        "#86502e",
-        "#804a2d",
-        "#7a462b",
-        "#74422a",
-        "#713f29",
-        "#6e3e28",
-        "#6a3c28",
-        "#673a27",
-        "#643826",
-        "#603624",
-        "#5d3424",
-        "#5a3224",
-        "#572f23",
-        "#552e22",
-        "#512b22",
-        "#4d2b21",
-        "#4a2820",
-        "#46271f",
-        "#44251f",
-        "#41231c",
-        "#3e211b",
-        "#3a1f19",
-        "#371d18",
-        "#321a16",
-        "#2e1815",
-        "#2a1613",
-        "#261412",
-        "#24120f",
-        "#20100d",
-        "#1c0e0b",
-        "#130b08",
-        "#070403"
-    ],
+    roastColoring: { brownStartIndex: 188, charStartIndex: 680 },
+    roastColors: buildSmoothRoastPalette(784),
     startingColors: ["#5cff82", "#67e083", "#5cbd73", "#73bd5c", "#98ed7e", "#b2ed7e", "#c3fa93", "#c7e87b", "#e6fc8d", "#8dfcb0"],
     hud: { headerX: 10, headerY: 10, headerHeight: 166, margin: 12, graphHeight: 52, controlsReserveWidth: 300, buttonWidth: 152, buttonHeight: 38, buttonGap: 10 },
+    grinder: {
+        wheelRadius: 56,
+        wheelThickness: 18,
+        initialHalfGap: 80,
+        minHalfGap: 57,
+        closeSpeedPxPerSec: 70,
+        angularSpeedRadPerSec: 5.8,
+        crushZoneHeightFactor: 0.9,
+        particleCountMin: 14,
+        particleCountMax: 34,
+        particleMaxLifeMs: 2600,
+        particleGravity: 640,
+        particleDamping: 0.992
+    },
     draw: { beanBaseRadius: 12 }
 };
 

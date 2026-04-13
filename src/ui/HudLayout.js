@@ -19,11 +19,18 @@ export class HudLayout {
         let resolvedHeaderHeight = headerHeight;
 
         let makeBeanRect;
+        let grinderRect;
 
         if (isMobile) {
-            const compactButtonWidth = Math.max(160, Math.floor(headerWidth - (margin * 2)));
+            const compactButtonWidth = Math.max(120, Math.floor((headerWidth - (margin * 3)) / 2));
             makeBeanRect = {
                 x: leftX,
+                y: headerY + 8,
+                width: compactButtonWidth,
+                height: buttonHeight
+            };
+            grinderRect = {
+                x: leftX + compactButtonWidth + margin,
                 y: headerY + 8,
                 width: compactButtonWidth,
                 height: buttonHeight
@@ -35,8 +42,14 @@ export class HudLayout {
             resolvedHeaderHeight = isUltraNarrow ? 314 : 290;
         } else if (isTablet) {
             makeBeanRect = {
-                x: headerX + headerWidth - (buttonWidth + margin),
+                x: headerX + headerWidth - ((buttonWidth * 2) + margin + 8),
                 y: headerY + 8,
+                width: buttonWidth,
+                height: buttonHeight
+            };
+            grinderRect = {
+                x: makeBeanRect.x + buttonWidth + 8,
+                y: makeBeanRect.y,
                 width: buttonWidth,
                 height: buttonHeight
             };
@@ -46,8 +59,14 @@ export class HudLayout {
             resolvedHeaderHeight = 220;
         } else {
             makeBeanRect = {
-                x: graphX - buttonWidth - 18,
+                x: graphX - ((buttonWidth * 2) + 26),
                 y: headerY + 6,
+                width: buttonWidth,
+                height: buttonHeight
+            };
+            grinderRect = {
+                x: makeBeanRect.x + buttonWidth + 8,
+                y: makeBeanRect.y,
                 width: buttonWidth,
                 height: buttonHeight
             };
@@ -67,7 +86,8 @@ export class HudLayout {
             graphHeight,
             controlsLeft,
             stageBarWidth,
-            makeBeanRect
+            makeBeanRect,
+            grinderRect
         };
     }
 }
