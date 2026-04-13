@@ -13,7 +13,20 @@ export class SimulationController {
             spawnTimer: null,
             debugEnabled: false,
             mouse: { active: false, x: 0, y: 0, vx: 0, vy: 0 },
-            motion: { accelX: 0, accelY: 0, shakePending: false, lastShakeAt: 0 },
+            motion: {
+                accelX: 0,
+                accelY: 0,
+                tiltX: 0,
+                tiltY: 1,
+                tiltStrength: 1,
+                tiltRateX: 0,
+                tiltRateY: 0,
+                lastTiltX: 0,
+                lastTiltY: 1,
+                lastMotionAt: 0,
+                shakePending: false,
+                lastShakeAt: 0
+            },
             activeHudButton: null,
             lastFrameTime: 0
         };
@@ -112,12 +125,37 @@ export class SimulationController {
     };
 
     onMotion = (event) => {
-        this.state.motion.accelX = event.accelerationIncludingGravity?.x ?? 0;
-        this.state.motion.accelY = event.accelerationIncludingGravity?.y ?? 0;
+        const now = performance.now();
+        const ax = event.accelerationIncludingGravity?.x ?? 0;
+        const ay = event.accelerationIncludingGravity?.y ?? 0;
+        const az = event.accelerationIncludingGravity?.z ?? 0;
+        this.state.motion.accelX = ax;
+        this.state.motion.accelY = ay;
+
+        const planar = Math.sqrt((ax * ax) + (ay * ay));
+        const total = Math.max(0.001, Math.sqrt((ax * ax) + (ay * ay) + (az * az)));
+        const tiltRatio = Math.min(1, planar / total);
+        const directionalX = planar > 0.001 ? (-ax / planar) : 0;
+        const directionalY = planar > 0.001 ? (ay / planar) : 1;
+
+        this.state.motion.tiltX = directionalX;
+        this.state.motion.tiltY = directionalY;
+        this.state.motion.tiltStrength = Math.pow(tiltRatio, this.config.motion.uprightBoostExponent);
+
+        const dtSec = this.state.motion.lastMotionAt > 0 ? Math.max(0.001, (now - this.state.motion.lastMotionAt) / 1000) : 0.016;
+        const rawTiltRateX = (directionalX - this.state.motion.lastTiltX) / dtSec;
+        const rawTiltRateY = (directionalY - this.state.motion.lastTiltY) / dtSec;
+        const smooth = this.config.motion.tiltRateSmoothing;
+        this.state.motion.tiltRateX = (this.state.motion.tiltRateX * smooth) + (rawTiltRateX * (1 - smooth));
+        this.state.motion.tiltRateY = (this.state.motion.tiltRateY * smooth) + (rawTiltRateY * (1 - smooth));
+        this.state.motion.lastTiltX = directionalX;
+        this.state.motion.lastTiltY = directionalY;
+        this.state.motion.lastMotionAt = now;
+
         const acceleration = event.acceleration;
         if (!acceleration) return;
-        const total = Math.abs(acceleration.x || 0) + Math.abs(acceleration.y || 0) + Math.abs(acceleration.z || 0);
-        if (total > this.config.motion.shakeThreshold && (Date.now() - this.state.motion.lastShakeAt) > this.config.motion.shakeCooldownMs) {
+        const shakeTotal = Math.abs(acceleration.x || 0) + Math.abs(acceleration.y || 0) + Math.abs(acceleration.z || 0);
+        if (shakeTotal > this.config.motion.shakeThreshold && (Date.now() - this.state.motion.lastShakeAt) > this.config.motion.shakeCooldownMs) {
             this.state.motion.lastShakeAt = Date.now();
             this.state.motion.shakePending = true;
         }
@@ -133,10 +171,20 @@ export class SimulationController {
     };
 
     applyMotionForces() {
+        const gravityMagnitude =
+            this.config.motion.gravityWhenFlat +
+            ((this.config.motion.gravityWhenUpright - this.config.motion.gravityWhenFlat) * this.state.motion.tiltStrength);
+        this.physicsWorld.setGravityVector(
+            this.state.motion.tiltX * gravityMagnitude,
+            this.state.motion.tiltY * gravityMagnitude
+        );
+
+        const forceScale = this.config.motion.tiltForceScale * (0.4 + (this.state.motion.tiltStrength * 2.0));
+        const rateScale = this.config.motion.tiltRateForceScale * (0.25 + (this.state.motion.tiltStrength * 1.75));
         this.beanManager.forEach((bean) => {
             window.Matter.Body.applyForce(bean.body, bean.body.position, {
-                x: -this.state.motion.accelX * this.config.motion.tiltForceScale * bean.body.mass,
-                y: this.state.motion.accelY * this.config.motion.tiltForceScale * bean.body.mass
+                x: (-this.state.motion.accelX * forceScale * bean.body.mass) + (this.state.motion.tiltRateX * rateScale * bean.body.mass),
+                y: (this.state.motion.accelY * forceScale * bean.body.mass) + (this.state.motion.tiltRateY * rateScale * bean.body.mass)
             });
         });
 

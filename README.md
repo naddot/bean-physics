@@ -93,7 +93,8 @@ No build step is required for production, and local dev can use Vite.
 - Canvas interaction:
   - mouse/touch drag applies push forces
 - Mobile motion:
-  - tilt applies directional force
+  - tilt changes gravity direction and strength (near-weightless when flat, stronger gravity when upright)
+  - rapid orientation changes add extra acceleration (tilt-rate response)
   - shake applies impulse burst
   - iOS prompts permission via **Enable Motion**
 
@@ -114,7 +115,7 @@ Core tuning lives in `src/config/config.js`:
 - `physics` - gravity, solver iterations, wall thickness
 - `bean` - spawn dynamics, bounce, drag, density
 - `mouse` - interaction radius/force
-- `motion` - tilt/shake thresholds and force
+- `motion` - tilt/shake thresholds, gravity-vs-angle mapping, and tilt-rate force response
 - `analytics` - sample rate, history lengths, curve constants
 - `temperature` - ambient/max temp and curve gamma
 - `roastThresholds`, `roastColors`, `roastStages` - roast progression model

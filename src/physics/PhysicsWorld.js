@@ -30,6 +30,11 @@ export class PhysicsWorld {
         Engine.update(this.engine, deltaMs);
     }
 
+    setGravityVector(x, y) {
+        this.engine.world.gravity.x = x;
+        this.engine.world.gravity.y = y;
+    }
+
     resizeBounds(width, height) {
         const { World, Bodies } = this.Matter;
         if (this.boundaries.length > 0) {

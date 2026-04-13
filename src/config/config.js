@@ -4,7 +4,17 @@ export const CONFIG = {
     bean: { radius: 16, restitution: 0.75, friction: 0.03, frictionAir: 0.008, density: 0.0017, initialVelocityX: 8, initialVelocityY: 7 },
     spawn: { intervalMs: 90 },
     mouse: { influenceRadius: 120, dragBoostPerPixel: 0.11, maxDragBoost: 2.8, forceScale: 0.0045, velocityForceScale: 0.00024, clickBurstRadius: 70, clickBurstForceScale: 0.0095 },
-    motion: { tiltForceScale: 0.00018, shakeThreshold: 25, shakeCooldownMs: 1000, shakeForceScale: 0.08 },
+    motion: {
+        tiltForceScale: 0.0006,
+        tiltRateForceScale: 0.0045,
+        shakeThreshold: 25,
+        shakeCooldownMs: 1000,
+        shakeForceScale: 0.08,
+        gravityWhenFlat: 0.03,
+        gravityWhenUpright: 1.0,
+        uprightBoostExponent: 1.25,
+        tiltRateSmoothing: 0.7
+    },
     analytics: { histogramBins: 8, sampleIntervalMs: 250, maxHistoryPoints: 180, energyImpactScale: 40, rorLookbackMs: 15000 },
     temperature: { ambientC: 20, maxRoastC: 230, curveGamma: 0.85 },
     roastStages: [
