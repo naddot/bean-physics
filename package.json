@@ -1,0 +1,27 @@
+{
+  "name": "bean-physics",
+  "version": "1.0.0",
+  "description": "A browser-based coffee roasting sandbox where beans collide, absorb impact energy, and move through roast stages with live console-style metrics.",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite --host --port 8000",
+    "build": "vite build",
+    "preview": "vite preview --host --port 8000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naddot/bean-physics.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/naddot/bean-physics/issues"
+  },
+  "homepage": "https://github.com/naddot/bean-physics#readme",
+  "devDependencies": {
+    "vite": "^8.0.8"
+  }
+}
