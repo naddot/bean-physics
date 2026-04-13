@@ -6,6 +6,7 @@ export class Bean {
         this.config = config;
         this.totalForce = 0;
         this.colorIndex = 0;
+        this.colorPosition = 0;
         this.startColor = startColor;
         this.color = startColor;
         this.darkerColor = darkenHexColor(startColor, 20);
@@ -13,6 +14,13 @@ export class Bean {
         this.currentDensity = config.bean.density;
         this.baseRestitution = config.bean.restitution;
         this.baseFrictionAir = config.bean.frictionAir;
+        const now = performance.now();
+        this.lastEnergyChangeAt = now;
+        this.lastMeaningfulEnergyChangeAt = now;
+        this.lastMovementAt = now;
+        this.lastX = body.position.x;
+        this.lastY = body.position.y;
+        this.hasFirstCrackPopped = false;
     }
 
     applyCollisionEnergy(energyDelta, roastModel) {
@@ -22,6 +30,13 @@ export class Bean {
             this.config.bean.maxEnergyPerUpdate ?? Number.POSITIVE_INFINITY
         );
         this.totalForce += cappedDelta;
+        if (cappedDelta > 0) {
+            const now = performance.now();
+            this.lastEnergyChangeAt = now;
+            if (cappedDelta >= (this.config.bean.inactivityRemoval?.minMeaningfulDelta ?? 30)) {
+                this.lastMeaningfulEnergyChangeAt = now;
+            }
+        }
         const progress = roastModel.getRoastProgress(this.totalForce);
         const tempC = roastModel.getTemperatureCFromForce(this.totalForce);
         const dryingStartC = this.config.roastStages[0]?.minC ?? this.config.temperature.ambientC;
@@ -68,6 +83,7 @@ export class Bean {
             const mix = scaled - lower;
 
             this.colorIndex = Math.round(scaled);
+            this.colorPosition = scaled;
             this.color = interpolateHexColor(this.config.roastColors[lower], this.config.roastColors[upper], mix);
             this.darkerColor = darkenHexColor(this.color, 20);
         }

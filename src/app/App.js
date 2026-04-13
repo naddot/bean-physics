@@ -8,6 +8,7 @@ import { HudView } from "../ui/HudView.js";
 import { InputController } from "../input/InputController.js";
 import { SimulationController } from "../core/SimulationController.js";
 import { RuntimeChecks } from "../util/runtimeChecks.js";
+import { FirstCrackAudio } from "../audio/FirstCrackAudio.js";
 
 export class App {
     constructor() {
@@ -24,6 +25,7 @@ export class App {
         const runtimeChecks = new RuntimeChecks(CONFIG, roastModel);
         const hudLayout = new HudLayout(CONFIG);
         const hudView = new HudView(CONFIG, this.ctx, hudLayout);
+        const firstCrackAudio = new FirstCrackAudio(CONFIG);
 
         let sim = null;
         const input = new InputController(this.canvas, this.requestPermissionButton, {
@@ -44,7 +46,8 @@ export class App {
             analyticsService,
             hudView,
             input,
-            runtimeChecks
+            runtimeChecks,
+            firstCrackAudio
         );
         sim.init();
     }

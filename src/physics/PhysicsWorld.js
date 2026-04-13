@@ -73,4 +73,9 @@ export class PhysicsWorld {
         World.add(this.engine.world, body);
         return body;
     }
+
+    removeBody(body) {
+        const { World } = this.Matter;
+        World.remove(this.engine.world, body);
+    }
 }

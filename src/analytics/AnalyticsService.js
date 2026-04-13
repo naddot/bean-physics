@@ -11,6 +11,7 @@ export class AnalyticsService {
             averageColor: "#000000",
             consistency: 1,
             distribution: Array(this.config.analytics.histogramBins).fill(0),
+            distributionColors: Array(this.config.analytics.histogramBins).fill("#000000"),
             averageTempC: this.config.temperature.ambientC,
             dominantStageLabel: "Warm-up",
             stageCounts: Object.fromEntries(this.config.roastStages.map((stage) => [stage.key, 0])),
@@ -30,12 +31,16 @@ export class AnalyticsService {
     update(beans, timeStamp) {
         const count = beans.length;
         const bins = Array(this.config.analytics.histogramBins).fill(0);
+        const binR = Array(this.config.analytics.histogramBins).fill(0);
+        const binG = Array(this.config.analytics.histogramBins).fill(0);
+        const binB = Array(this.config.analytics.histogramBins).fill(0);
 
         if (count === 0) {
             this.metrics.totalEnergy = 0;
             this.metrics.averageColor = "#000000";
             this.metrics.consistency = 1;
             this.metrics.distribution = bins;
+            this.metrics.distributionColors = Array(this.config.analytics.histogramBins).fill("#000000");
             this.metrics.averageTempC = this.config.temperature.ambientC;
             this.metrics.dominantStageLabel = "Warm-up";
             this.metrics.stageCounts = Object.fromEntries(this.config.roastStages.map((stage) => [stage.key, 0]));
@@ -68,11 +73,15 @@ export class AnalyticsService {
             if (stageKey === "warmup") warmupCount += 1;
             else stageCounts[stageKey] += 1;
 
+            const colorPosition = typeof bean.colorPosition === "number" ? bean.colorPosition : bean.colorIndex;
             const bin = Math.min(
                 this.config.analytics.histogramBins - 1,
-                Math.floor((bean.colorIndex / Math.max(1, this.config.roastColors.length - 1)) * this.config.analytics.histogramBins)
+                Math.floor((colorPosition / Math.max(1, this.config.roastColors.length - 1)) * this.config.analytics.histogramBins)
             );
             bins[bin] += 1;
+            binR[bin] += rgb.r;
+            binG[bin] += rgb.g;
+            binB[bin] += rgb.b;
         });
 
         const mean = sum / count;
@@ -82,6 +91,13 @@ export class AnalyticsService {
         this.metrics.averageColor = this.rgbToHex(r / count, g / count, b / count);
         this.metrics.consistency = Math.max(0, 1 - (stdDev / Math.max(1, this.config.roastColors.length - 1)));
         this.metrics.distribution = bins;
+        this.metrics.distributionColors = bins.map((binCount, index) => {
+            if (binCount <= 0) {
+                const paletteIndex = Math.floor((index / Math.max(1, this.config.analytics.histogramBins - 1)) * Math.max(1, this.config.roastColors.length - 1));
+                return this.config.roastColors[Math.min(this.config.roastColors.length - 1, paletteIndex)];
+            }
+            return this.rgbToHex(binR[index] / binCount, binG[index] / binCount, binB[index] / binCount);
+        });
         this.metrics.averageTempC = totalTempC / count;
         this.metrics.stageCounts = stageCounts;
 

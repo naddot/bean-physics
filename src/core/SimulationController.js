@@ -1,5 +1,5 @@
 export class SimulationController {
-    constructor(config, canvas, ctx, physicsWorld, beanManager, analyticsService, hudView, inputController, runtimeChecks) {
+    constructor(config, canvas, ctx, physicsWorld, beanManager, analyticsService, hudView, inputController, runtimeChecks, firstCrackAudio) {
         this.config = config;
         this.canvas = canvas;
         this.ctx = ctx;
@@ -9,6 +9,7 @@ export class SimulationController {
         this.hudView = hudView;
         this.inputController = inputController;
         this.runtimeChecks = runtimeChecks;
+        this.firstCrackAudio = firstCrackAudio;
         this.state = {
             spawnTimer: null,
             spawnStartedAt: 0,
@@ -167,6 +168,7 @@ export class SimulationController {
     }
 
     onPointerDown = (event) => {
+        this.firstCrackAudio?.prime();
         const clickX = event.clientX;
         const clickY = event.clientY;
         const { makeBean } = this.hudView.getButtonRects();
@@ -176,7 +178,6 @@ export class SimulationController {
             this.startSpawnStream(event);
             return;
         }
-
         this.state.mouse.active = true;
         this.state.mouse.x = clickX;
         this.state.mouse.y = clickY;
@@ -252,6 +253,7 @@ export class SimulationController {
     };
 
     onRequestMotionPermission = () => {
+        this.firstCrackAudio?.prime();
         DeviceMotionEvent.requestPermission()
             .then((response) => {
                 if (response !== "granted") return;
@@ -259,6 +261,19 @@ export class SimulationController {
             })
             .catch(console.error);
     };
+
+    triggerFirstCrackPops(nowMs) {
+        const roastModel = this.beanManager.roastModel;
+        if (!roastModel) return;
+        this.beanManager.forEach((bean) => {
+            if (bean.hasFirstCrackPopped) return;
+            const tempC = roastModel.getTemperatureCFromForce(bean.totalForce);
+            const stage = roastModel.getRoastStageForTemp(tempC);
+            if (stage.key !== "firstCrack") return;
+            bean.hasFirstCrackPopped = true;
+            this.firstCrackAudio?.playPop(nowMs);
+        });
+    }
 
     applyMotionForces() {
         if (!this.isMobileDevice) {
@@ -323,7 +338,10 @@ export class SimulationController {
         this.updateMousePaddle(timeStamp);
         this.applyMouseForces();
         this.physicsWorld.update(dtMs);
-        this.beanManager.applyNeighborEnergyTransfer(dtMs);
+        this.beanManager.applyNeighborEnergyTransfer(dtMs, timeStamp);
+        this.triggerFirstCrackPops(timeStamp);
+        this.beanManager.removeInactiveBeans(timeStamp);
+        this.beanManager.removeBrokenOrStuckBeans(timeStamp, this.canvas.width, this.canvas.height);
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.beanManager.forEach((bean) => this.hudView.drawBean(bean));

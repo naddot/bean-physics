@@ -209,7 +209,7 @@ export class HudView {
             const barY = Math.round(y + height - barHeight);
             const drawWidth = Math.max(0, Math.round(barWidth));
             if (drawWidth <= 0) return;
-            ctx.fillStyle = this.config.roastColors[clamp(midIdx, 0, this.config.roastColors.length - 1)];
+            ctx.fillStyle = metrics.distributionColors?.[i] || this.config.roastColors[clamp(midIdx, 0, this.config.roastColors.length - 1)];
             ctx.fillRect(barX, barY, drawWidth, barHeight);
         });
         ctx.strokeStyle = "rgba(255,255,255,0.2)";

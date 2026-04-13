@@ -25,6 +25,18 @@ export const CONFIG = {
             radius: 40,
             ratePerSecond: 0.12,
             maxPerPairPerSecond: 220
+        },
+        inactivityRemoval: {
+            enabled: true,
+            timeoutMs: 20000,
+            minMeaningfulDelta: 30
+        },
+        safetyCleanup: {
+            enabled: true,
+            offscreenMarginPx: 220,
+            minMovementPx: 0.35,
+            minSpeed: 0.03,
+            stuckTimeoutMs: 14000
         }
     },
     spawn: { intervalMs: 90, minIntervalMs: 24, accelerationPerSecond: 70 },
@@ -64,6 +76,19 @@ export const CONFIG = {
         accelSmoothing: 0.88,
         tiltStrengthSmoothing: 0.86,
         gravitySmoothing: 0.9
+    },
+    audio: {
+        firstCrackPop: {
+            enabled: true,
+            minIntervalMs: 55,
+            gain: 0.55,
+            maxConcurrent: 5,
+            minPitchHz: 580,
+            maxPitchHz: 620,
+            attackMs: 0.19,
+            decayMs: 600,
+            noiseMix:0.92
+        }
     },
     analytics: { histogramBins: 8, sampleIntervalMs: 250, maxHistoryPoints: 180, energyImpactScale: 40, rorLookbackMs: 15000 },
     temperature: { ambientC: 20, maxRoastC: 275, curveGamma: 1.02, browningStartC: 165, charStartC: 260 },
