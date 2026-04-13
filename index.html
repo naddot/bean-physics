@@ -16,11 +16,7 @@
 
     <div class="button-wrapper">
         <button id="spawnButton">Make bean</button>
-      
-        <a id="milestoneButton" href="https://naddot.github.io/how-old/" target="_blank">
-          🌈 Find my milestone birthday
-        </a>
-      </div>
+    </div>
       
 
     <button id="requestPermissionButton" style="display: none;">Enable Motion</button>
@@ -31,27 +27,8 @@
 
 
 
-    <!-- Include your game logic script -->
+    <script src="https://unpkg.com/matter-js@0.20.0/build/matter.min.js"></script>
     <script src="physics.js"></script>
-
-    <script>
-        function resizeCanvas() {
-            const canvas = document.getElementById('myCanvas');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-
-        // Resize on load, window resize, and orientation change
-        window.addEventListener('load', resizeCanvas);
-        window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('orientationchange', resizeCanvas);
-
-        // Hide UI bars when interacting
-        document.body.addEventListener('click', () => {
-            window.scrollTo(0, 1);
-            resizeCanvas();
-        });
-    </script>
 
 </body>
 </html>

@@ -1,806 +1,455 @@
-const GameState = {
-    secondsPassed: 0,
-    oldTimeStamp: 0,
-    gameObjects: [],
-    debug: {
-        enabled: false,
-        showHitboxes: true,
-        showVelocityVectors: true,
-        showForceValues: true
-    }
-};
+const MatterRef = window.Matter;
 
-// Constants and input-related state variables
-const g = 9.81 * 10;
-const minSeparation = 2; // Fine-tuned minimum distance to prevent sticking
-
-
-const mouse = {
-    type: "mouse",
-    x: 0,
-    y: 0,
-    vx: 1,
-    vy: 1,
-    mass: 707,
-    radius: 50,
-    active: false
-};
-
-const motion = {
-    accelX: 0,
-    accelY: 0,
-    accelZ: 0,
-    lastAccelX: 0,
-    lastAccelY: 0,
-    lastAccelZ: 0,
-    smoothingFactor: 0.8,
-    shakeThreshold: 25,
-    shakeCooldown: 1000,
-    lastShakeTime: 0,
-    shakePending: false
-};
-
-
-const restitution = 0.80;
-
-// Canvas setup
-const canvas = document.getElementById('myCanvas');
-const ctx = canvas.getContext('2d');
-
-const CanvasManager = {
-    resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-};
-
-const MotionManager = {
-    handleMotion(event) {
-        console.log("📲 handleMotion fired");
-    
-        // Log both types of acceleration for comparison
-        console.log("🧪 acceleration:", event.acceleration);
-        console.log("🧪 accelerationIncludingGravity:", event.accelerationIncludingGravity);
-    
-        const rawX = event.accelerationIncludingGravity?.x ?? 0;
-        const rawY = event.accelerationIncludingGravity?.y ?? 0;
-        const rawZ = event.accelerationIncludingGravity?.z ?? 0;
-    
-        console.log(`📉 Raw accelIncludingGravity: X=${rawX}, Y=${rawY}, Z=${rawZ}`);
-    
-        // TEMP: Bypass smoothing for clear motion during mobile testing
-        motion.accelX = rawX;
-        motion.accelY = rawY;
-        motion.accelZ = rawZ;
-    
-        // Optionally store raw values (for analytics/debug)
-        motion.rawX = rawX;
-        motion.rawY = rawY;
-        motion.rawZ = rawZ;
-    
-        if (GameState.debug.enabled) {
-            console.log(`🧭 Final motion.accelX=${motion.accelX}, accelY=${motion.accelY}`);
-        }
-    }
-    ,
-
-    detectShake(event) {
-        if (!event.acceleration) return;
-        let accX = event.acceleration.x;
-        let accY = event.acceleration.y;
-        let accZ = event.acceleration.z;
-        let deltaX = Math.abs(accX - motion.lastAccelX);
-        let deltaY = Math.abs(accY - motion.lastAccelY);
-        let deltaZ = Math.abs(accZ - motion.lastAccelZ);
-        let totalChange = deltaX + deltaY + deltaZ;
-    
-        if (totalChange > motion.shakeThreshold && Date.now() - motion.lastShakeTime > motion.shakeCooldown) {
-            motion.lastShakeTime = Date.now();
-            motion.shakePending = true; // <-- trigger shake in loop
-        }
-    
-        motion.lastAccelX = accX;
-        motion.lastAccelY = accY;
-        motion.lastAccelZ = accZ;
-    },
-    
-    applyMotionToBeans() {
-        // Log current tilt input
-        if (GameState.debug.enabled) {
-            console.log(`📐 Tilt input: accelX=${motion.accelX.toFixed(3)}, accelY=${motion.accelY.toFixed(3)}`);
-        }
-    
-        const ios = isIOS();
-        const tiltFactor = 300; // Start smaller than 300; it's scaled later
-        const maxTiltForce = 50; // Higher cap to allow visible mobile motion
-        const massScaling = true;
-    
-        GameState.gameObjects.forEach(obj => {
-            if (obj instanceof Circle) {
-                let accelX = ios ? motion.accelX : -motion.accelX;
-                let accelY = ios ? -motion.accelY : motion.accelY;
-    
-                // Initial tilt force
-                let tiltForceX = accelX * tiltFactor;
-                let tiltForceY = accelY * tiltFactor;
-    
-                // Apply mass scaling if enabled
-                if (massScaling) {
-                    const massEffect = Math.max(0.5, Math.min(1.5, 1000 / obj.mass));
-                    tiltForceX *= massEffect;
-                    tiltForceY *= massEffect;
-                }
-    
-                // Clamp to max force
-                //tiltForceX = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceX));
-                //tiltForceY = Math.max(-maxTiltForce, Math.min(maxTiltForce, tiltForceY));
-    
-                // Apply force
-                obj.vx += tiltForceX * GameState.secondsPassed;
-                obj.vy += tiltForceY * GameState.secondsPassed;
-    
-                // Debug bean movement
-                if (GameState.debug.enabled) {
-                    console.log(`🫘 Bean ${obj.id || ''} tiltForceX=${tiltForceX.toFixed(2)}, vx=${obj.vx.toFixed(2)}, x=${obj.x.toFixed(2)}`);
-                }
-    
-                // Air resistance
-                const speed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
-                const airResistance = 0.01 + (speed * 0.001);
-                if (speed > 0.1) {
-                    obj.vx *= (1 - airResistance * GameState.secondsPassed);
-                    obj.vy *= (1 - airResistance * GameState.secondsPassed);
-                }
-            }
-        });
-    }
-};    
-
-function applyShakeEffect() {
-    GameState.gameObjects.forEach(obj => {
-        if (obj instanceof Circle) {
-            obj.vx += (Math.random() - 0.25) * 8000;
-            obj.vy += (Math.random() - 0.25) * 8000;
-        }
-    });
-    console.log("Shake detected! Beans shaken!");
+if (!MatterRef) {
+    throw new Error("Matter.js is required but was not loaded.");
 }
 
-// Motion permission for iOS
-function requestMotionPermission() {
-    DeviceMotionEvent.requestPermission().then(response => {
-        if (response === "granted") {
-            console.log("Motion permission granted");
-            window.addEventListener("devicemotion", MotionManager.handleMotion);
-            window.addEventListener("devicemotion", MotionManager.detectShake);
-            document.getElementById('requestPermissionButton').style.display = 'none';
-        } else {
-            console.log("Permission not granted:", response);
-        }
-    }).catch(console.error);
-}
+const { Engine, World, Bodies, Body, Events } = MatterRef;
 
+const CONFIG = {
+    physics: { gravityY: 0.9, positionIterations: 8, velocityIterations: 6, constraintIterations: 2, wallThickness: 80 },
+    bean: { radius: 16, restitution: 0.75, friction: 0.03, frictionAir: 0.008, density: 0.0017, initialVelocityX: 8, initialVelocityY: 7 },
+    spawn: { intervalMs: 90 },
+    mouse: { influenceRadius: 120, dragBoostPerPixel: 0.11, maxDragBoost: 2.8, forceScale: 0.0045, velocityForceScale: 0.00024, clickBurstRadius: 70, clickBurstForceScale: 0.0095 },
+    motion: { tiltForceScale: 0.00018, shakeThreshold: 25, shakeCooldownMs: 1000, shakeForceScale: 0.08 },
+    analytics: { histogramBins: 8, sampleIntervalMs: 250, maxHistoryPoints: 180, energyImpactScale: 40 },
+    roastThresholds: [500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 500000, 700000, 820000, 900000, 950000, 1000000, 1000500, 1000750, 1000950, 1001000],
+    roastColors: ["#d3fc8d", "#e0fc8d", "#fcfc8d", "#ffff61", "#ebcc34", "#ebb134", "#d19b26", "#d68418", "#d9800d", "#ad6103", "#8c4e03", "#995829", "#804f2d", "#6b462b", "#5c3e29", "#453021", "#36271c", "#1f1611", "#0d0a07"],
+    startingColors: ["#5cff82", "#67e083", "#5cbd73", "#73bd5c", "#98ed7e", "#b2ed7e", "#c3fa93", "#c7e87b", "#e6fc8d", "#8dfcb0"],
+    hud: { panelX: 10, panelWidth: 260, distributionY: 95, panelHeight: 90, curveY: 210 },
+    draw: { beanBaseRadius: 12 }
+};
+
+const canvas = document.getElementById("myCanvas");
+const ctx = canvas.getContext("2d");
+const spawnButton = document.getElementById("spawnButton");
+const debugButton = document.getElementById("debugButton");
+const requestPermissionButton = document.getElementById("requestPermissionButton");
+
+const engine = Engine.create({
+    gravity: { x: 0, y: CONFIG.physics.gravityY },
+    positionIterations: CONFIG.physics.positionIterations,
+    velocityIterations: CONFIG.physics.velocityIterations,
+    constraintIterations: CONFIG.physics.constraintIterations
+});
+
+const state = {
+    debugEnabled: false,
+    boundaries: [],
+    beans: [],
+    spawnTimer: null,
+    mouse: { active: false, x: 0, y: 0, vx: 0, vy: 0 },
+    motion: { accelX: 0, accelY: 0, shakePending: false, lastShakeAt: 0 },
+    analytics: { totalEnergy: 0, averageColor: "#000000", consistency: 1, distribution: Array(CONFIG.analytics.histogramBins).fill(0), energyHistory: [], lastSampleTime: 0 },
+    lastFrameTime: 0
+};
 
 function isIOS() {
     return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
 
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function lerp(a, b, t) {
+    return a + ((b - a) * t);
+}
+
+function hexToRgb(hex) {
+    const value = hex.replace("#", "");
+    return { r: parseInt(value.slice(0, 2), 16), g: parseInt(value.slice(2, 4), 16), b: parseInt(value.slice(4, 6), 16) };
+}
+
+function rgbToHex(r, g, b) {
+    const toHex = (v) => clamp(Math.round(v), 0, 255).toString(16).padStart(2, "0");
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 function darkenHexColor(hex, percent) {
-    hex = hex.replace('#', '');
-    let r = parseInt(hex.substring(0, 2), 16);
-    let g = parseInt(hex.substring(2, 4), 16);
-    let b = parseInt(hex.substring(4, 6), 16);
-
-    r = Math.max(0, r - (r * percent / 100));
-    g = Math.max(0, g - (g * percent / 100));
-    b = Math.max(0, b - (b * percent / 100));
-
-    let newHex = '#' + 
-                ('0' + Math.round(r).toString(16)).slice(-2) + 
-                ('0' + Math.round(g).toString(16)).slice(-2) + 
-                ('0' + Math.round(b).toString(16)).slice(-2);
-
-    return newHex;
+    const rgb = hexToRgb(hex);
+    return rgbToHex(rgb.r * (1 - percent / 100), rgb.g * (1 - percent / 100), rgb.b * (1 - percent / 100));
 }
 
-function bindEventListeners() {
-    window.addEventListener("resize", CanvasManager.resize);
-    window.addEventListener("orientationchange", () => {
-        setTimeout(() => {
-            CanvasManager.resize();
-        }, 300);
-    });
-    canvas.addEventListener("mousedown", e => {
-        mouse.active = true;
-        mouse.x = e.clientX;
-        mouse.y = e.clientY;
-        mouse.vx = 0;
-        mouse.vy = 0;
-    });
-    canvas.addEventListener("mouseup", () => {
-        mouse.active = false;
-    });
-    canvas.addEventListener("mousemove", e => {
-        if (mouse.active) {
-            mouse.vx = e.clientX - mouse.x;
-            mouse.vy = e.clientY - mouse.y;
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
+function interpolateHexColor(hexA, hexB, t) {
+    const a = hexToRgb(hexA);
+    const b = hexToRgb(hexB);
+    return rgbToHex(lerp(a.r, b.r, t), lerp(a.g, b.g, t), lerp(a.b, b.b, t));
+}
+
+function getRoastProgress(totalForce) {
+    const thresholds = CONFIG.roastThresholds;
+    const maxIndex = CONFIG.roastColors.length - 1;
+
+    if (totalForce <= thresholds[0]) return (totalForce / thresholds[0]) * (1 / maxIndex);
+
+    for (let i = 1; i < thresholds.length; i += 1) {
+        if (totalForce <= thresholds[i]) {
+            const localT = (totalForce - thresholds[i - 1]) / (thresholds[i] - thresholds[i - 1]);
+            return (i - 1 + localT) / maxIndex;
         }
+    }
+
+    return 1;
+}
+
+function resizeWorld() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    if (state.boundaries.length > 0) {
+        World.remove(engine.world, state.boundaries);
+    }
+
+    const t = CONFIG.physics.wallThickness;
+    state.boundaries = [
+        Bodies.rectangle(canvas.width / 2, -t / 2, canvas.width, t, { isStatic: true }),
+        Bodies.rectangle(canvas.width / 2, canvas.height + t / 2, canvas.width, t, { isStatic: true }),
+        Bodies.rectangle(-t / 2, canvas.height / 2, t, canvas.height, { isStatic: true }),
+        Bodies.rectangle(canvas.width + t / 2, canvas.height / 2, t, canvas.height, { isStatic: true })
+    ];
+    World.add(engine.world, state.boundaries);
+}
+
+function createBean() {
+    const radius = CONFIG.bean.radius;
+    const body = Bodies.circle(
+        radius + Math.random() * (canvas.width - radius * 2),
+        radius + Math.random() * (canvas.height - radius * 2),
+        radius,
+        { restitution: CONFIG.bean.restitution, friction: CONFIG.bean.friction, frictionAir: CONFIG.bean.frictionAir, density: CONFIG.bean.density }
+    );
+    Body.setVelocity(body, { x: (Math.random() - 0.5) * CONFIG.bean.initialVelocityX, y: (Math.random() - 0.6) * CONFIG.bean.initialVelocityY });
+    World.add(engine.world, body);
+
+    const startColor = CONFIG.startingColors[Math.floor(Math.random() * CONFIG.startingColors.length)];
+    state.beans.push({ body, totalForce: 0, colorIndex: 0, color: startColor, darkerColor: darkenHexColor(startColor, 20) });
+}
+
+function updateBeanRoast(bean, energyDelta) {
+    bean.totalForce += Math.max(0, energyDelta);
+    const progress = clamp(getRoastProgress(bean.totalForce), 0, 1);
+    const scaled = progress * (CONFIG.roastColors.length - 1);
+    const lower = Math.floor(scaled);
+    const upper = Math.min(CONFIG.roastColors.length - 1, lower + 1);
+    const mix = scaled - lower;
+
+    bean.colorIndex = Math.round(scaled);
+    bean.color = interpolateHexColor(CONFIG.roastColors[lower], CONFIG.roastColors[upper], mix);
+    bean.darkerColor = darkenHexColor(bean.color, 20);
+}
+
+function applyMotionForces() {
+    state.beans.forEach((bean) => {
+        Body.applyForce(bean.body, bean.body.position, {
+            x: -state.motion.accelX * CONFIG.motion.tiltForceScale * bean.body.mass,
+            y: state.motion.accelY * CONFIG.motion.tiltForceScale * bean.body.mass
+        });
+    });
+
+    if (state.motion.shakePending) {
+        state.beans.forEach((bean) => {
+            Body.applyForce(bean.body, bean.body.position, {
+                x: (Math.random() - 0.5) * CONFIG.motion.shakeForceScale * bean.body.mass,
+                y: (Math.random() - 0.5) * CONFIG.motion.shakeForceScale * bean.body.mass
+            });
+        });
+        state.motion.shakePending = false;
+    }
+}
+
+function applyMouseForces() {
+    if (!state.mouse.active) return;
+
+    state.beans.forEach((bean) => {
+        const dx = bean.body.position.x - state.mouse.x;
+        const dy = bean.body.position.y - state.mouse.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance <= 0.001 || distance > CONFIG.mouse.influenceRadius) return;
+
+        const falloff = 1 - (distance / CONFIG.mouse.influenceRadius);
+        const dragSpeed = Math.sqrt((state.mouse.vx * state.mouse.vx) + (state.mouse.vy * state.mouse.vy));
+        const dragBoost = Math.min(CONFIG.mouse.maxDragBoost, 1 + (dragSpeed * CONFIG.mouse.dragBoostPerPixel));
+        const radialForce = falloff * CONFIG.mouse.forceScale * dragBoost * bean.body.mass;
+        Body.applyForce(bean.body, bean.body.position, {
+            x: (dx / distance) * radialForce + (state.mouse.vx * CONFIG.mouse.velocityForceScale * bean.body.mass),
+            y: (dy / distance) * radialForce + (state.mouse.vy * CONFIG.mouse.velocityForceScale * bean.body.mass)
+        });
     });
 }
 
-window.addEventListener("load", () => {
-    CanvasManager.resize();
-    bindEventListeners();
-    init();
-});
+function updateAnalytics(timeStamp) {
+    const count = state.beans.length;
+    const bins = Array(CONFIG.analytics.histogramBins).fill(0);
+    if (count === 0) {
+        state.analytics.totalEnergy = 0;
+        state.analytics.averageColor = "#000000";
+        state.analytics.consistency = 1;
+        state.analytics.distribution = bins;
+        return;
+    }
 
-class GameObject {
-    constructor(context, x, y, vx, vy, mass, angle, angularVelocity) {
-        this.context = context;
-        this.x = x;
-        this.y = y;
-        this.vx = vx;
-        this.vy = vy;
-        this.mass = mass;
-        this.totalForce = 0;
-        this.colorIndex = 0;
-        this.angle = angle;
-        this.angularVelocity = angularVelocity;
-        this.isColliding = false;
+    let totalEnergy = 0;
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let sum = 0;
+    let sumSquares = 0;
+
+    state.beans.forEach((bean) => {
+        totalEnergy += bean.totalForce;
+        const rgb = hexToRgb(bean.color);
+        r += rgb.r;
+        g += rgb.g;
+        b += rgb.b;
+        sum += bean.colorIndex;
+        sumSquares += bean.colorIndex * bean.colorIndex;
+        const bin = Math.min(CONFIG.analytics.histogramBins - 1, Math.floor((bean.colorIndex / Math.max(1, CONFIG.roastColors.length - 1)) * CONFIG.analytics.histogramBins));
+        bins[bin] += 1;
+    });
+
+    const mean = sum / count;
+    const stdDev = Math.sqrt(Math.max(0, (sumSquares / count) - (mean * mean)));
+
+    state.analytics.totalEnergy = totalEnergy;
+    state.analytics.averageColor = rgbToHex(r / count, g / count, b / count);
+    state.analytics.consistency = Math.max(0, 1 - (stdDev / Math.max(1, CONFIG.roastColors.length - 1)));
+    state.analytics.distribution = bins;
+
+    if ((timeStamp - state.analytics.lastSampleTime) >= CONFIG.analytics.sampleIntervalMs) {
+        state.analytics.energyHistory.push(totalEnergy);
+        state.analytics.lastSampleTime = timeStamp;
+        if (state.analytics.energyHistory.length > CONFIG.analytics.maxHistoryPoints) {
+            state.analytics.energyHistory.shift();
+        }
     }
 }
 
-class Circle extends GameObject {
-    constructor(context, x, y, vx, vy, radius, mass) {
-        super(context, x, y, vx, vy, mass);
-        this.radius = radius;
-        this.totalForce = 0;
-        this.colorIndex = 0;
-        this.colors = ['#d3fc8d','#e0fc8d', '#fcfc8d', '#ffff61', '#ebcc34', '#ebb134', '#d19b26', '#d68418', '#d9800d', '#ad6103', '#8c4e03', '#995829', '#804f2d', '#6b462b', '#5c3e29', '#453021', '#36271c', '#1f1611', '#0d0a07'];
-        this.startingColors = ['#5cff82', '#67e083', '#5cbd73', '#73bd5c', '#98ed7e', '#b2ed7e', '#c3fa93', '#c7e87b', '#e6fc8d', '#8dfcb0'];
+function drawBean(bean) {
+    const base = CONFIG.draw.beanBaseRadius;
+    ctx.save();
+    ctx.translate(bean.body.position.x, bean.body.position.y);
+    ctx.rotate(bean.body.angle);
+    ctx.scale(bean.body.circleRadius / base, bean.body.circleRadius / base);
+    ctx.translate(-base, -base);
 
-        this.color = this.startingColors[Math.floor(Math.random() * this.startingColors.length)];
-        this.darkerColor = darkenHexColor(this.color, 20);
-        
-        // Animation properties
-        this.scale = 1.0;
-        this.targetScale = 1.0;
-        this.birthTime = Date.now();
+    const shapePath = new Path2D("M19.151 4.868a6.744 6.744 0 00-5.96-1.69 12.009 12.009 0 00-6.54 3.47 11.988 11.988 0 00-3.48 6.55 6.744 6.744 0 001.69 5.95 6.406 6.406 0 004.63 1.78 11.511 11.511 0 007.87-3.56C21.3 13.428 22.1 7.818 19.151 4.868Z");
+    const detailPath = new Path2D("M19.151,4.868a6.744,6.744,0,0,0-5.96-1.69,12.009,12.009,0,0,0-6.54,3.47,11.988,11.988,0,0,0-3.48,6.55,6.744,6.744,0,0,0,1.69,5.95,6.406,6.406,0,0,0,4.63,1.78,11.511,11.511,0,0,0,7.87-3.56C21.3,13.428,22.1,7.818,19.151,4.868Zm-14.99,8.48a11.041,11.041,0,0,1,3.19-5.99,10.976,10.976,0,0,1,5.99-3.19,8.016,8.016,0,0,1,1.18-.09,5.412,5.412,0,0,1,3.92,1.49.689.689,0,0,1,.11.13,6.542,6.542,0,0,1-2.12,1.23,7.666,7.666,0,0,0-2.96,1.93,7.666,7.666,0,0,0-1.93,2.96,6.589,6.589,0,0,1-1.71,2.63,6.7,6.7,0,0,1-2.63,1.71,7.478,7.478,0,0,0-2.35,1.36A6.18,6.18,0,0,1,4.161,13.348Zm12.49,3.31c-3.55,3.55-8.52,4.35-11.08,1.79a1.538,1.538,0,0,1-.12-.13,6.677,6.677,0,0,1,2.13-1.23,7.862,7.862,0,0,0,2.96-1.93,7.738,7.738,0,0,0,1.93-2.96,6.589,6.589,0,0,1,1.71-2.63,6.589,6.589,0,0,1,2.63-1.71,7.6,7.6,0,0,0,2.34-1.37C20.791,9.2,19.821,13.488,16.651,16.658Z");
+
+    ctx.fillStyle = bean.color;
+    ctx.fill(shapePath);
+    ctx.strokeStyle = bean.darkerColor;
+    ctx.lineWidth = 1;
+    ctx.stroke(detailPath);
+    if (state.debugEnabled) {
+        ctx.beginPath();
+        ctx.arc(base, base, base, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,0,0,0.35)";
+        ctx.stroke();
     }
+    ctx.restore();
+}
 
-    // Update color based on the total force and defined thresholds
-    updateColorBasedOnForce() {
-        const forceThresholds = [500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 500000, 700000, 820000, 900000, 950000, 1000000, 1000500, 1000750, 1000950, 1001000];
+function drawDistribution(x, y, width, height) {
+    const bins = state.analytics.distribution;
+    const maxCount = Math.max(1, ...bins);
+    const gap = 4;
+    const barWidth = (width - ((bins.length - 1) * gap)) / bins.length;
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.fillRect(x, y, width, height);
 
-        for (let i = 0; i < forceThresholds.length; i++) {
-            if (this.totalForce >= forceThresholds[i] && this.colorIndex <= i) {
-                this.colorIndex = i + 1;
-            }
-        }
+    bins.forEach((count, i) => {
+        if (count <= 0) return;
+        const barHeight = Math.round((count / maxCount) * (height - 4));
+        if (barHeight <= 0) return;
+        const startIdx = Math.floor((i / bins.length) * CONFIG.roastColors.length);
+        const endIdx = Math.max(startIdx, Math.floor(((i + 1) / bins.length) * CONFIG.roastColors.length) - 1);
+        const midIdx = Math.floor((startIdx + endIdx) / 2);
+        ctx.fillStyle = CONFIG.roastColors[clamp(midIdx, 0, CONFIG.roastColors.length - 1)];
+        ctx.fillRect(x + i * (barWidth + gap), y + height - barHeight, barWidth, barHeight);
+    });
 
-        if (this.colorIndex >= 0 && this.colorIndex < this.colors.length) {
-            this.color = this.colors[this.colorIndex];
-            this.darkerColor = darkenHexColor(this.color, 20);
-        }
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.strokeRect(x, y, width, height);
+}
+
+function drawEnergyCurve(x, y, width, height) {
+    const history = state.analytics.energyHistory;
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.fillRect(x, y, width, height);
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.strokeRect(x, y, width, height);
+    if (history.length < 2) return;
+
+    const min = Math.min(...history);
+    const max = Math.max(...history);
+    const range = Math.max(1, max - min);
+    ctx.beginPath();
+    history.forEach((value, index) => {
+        const px = x + (index / (history.length - 1)) * width;
+        const py = y + height - (((value - min) / range) * (height - 4)) - 2;
+        if (index === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    });
+    ctx.strokeStyle = "#ffad33";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
+function drawHud() {
+    const x = CONFIG.hud.panelX;
+    const width = CONFIG.hud.panelWidth;
+    const graphHeight = CONFIG.hud.panelHeight;
+    const distributionY = CONFIG.hud.distributionY;
+    const curveY = CONFIG.hud.curveY;
+
+    ctx.fillStyle = "white";
+    ctx.font = "16px Arial";
+    ctx.fillText(`Total Objects: ${state.beans.length}`, 10, 20);
+    ctx.fillText(`Roast Energy: ${Math.round(state.analytics.totalEnergy)}`, 10, 40);
+    ctx.fillText(`Consistency: ${(state.analytics.consistency * 100).toFixed(1)}%`, 10, 60);
+    ctx.fillStyle = state.analytics.averageColor;
+    ctx.fillRect(10, 70, 24, 14);
+    ctx.strokeStyle = "rgba(255,255,255,0.8)";
+    ctx.strokeRect(10, 70, 24, 14);
+    ctx.fillStyle = "white";
+    ctx.font = "12px Arial";
+    ctx.fillText(`Avg Colour ${state.analytics.averageColor}`, 40, 81);
+
+    drawDistribution(x, distributionY, width, graphHeight);
+    drawEnergyCurve(x, curveY, width, graphHeight);
+}
+
+function handleCollisionStart(event) {
+    event.pairs.forEach((pair) => {
+        const beanA = state.beans.find((bean) => bean.body === pair.bodyA);
+        const beanB = state.beans.find((bean) => bean.body === pair.bodyB);
+        if (!beanA || !beanB) return;
+        const rvx = pair.bodyA.velocity.x - pair.bodyB.velocity.x;
+        const rvy = pair.bodyA.velocity.y - pair.bodyB.velocity.y;
+        const normal = pair.collision.normal;
+        const impact = Math.abs((rvx * normal.x) + (rvy * normal.y));
+        const energyDelta = impact * (pair.bodyA.mass + pair.bodyB.mass) * CONFIG.analytics.energyImpactScale;
+        updateBeanRoast(beanA, energyDelta * 0.5);
+        updateBeanRoast(beanB, energyDelta * 0.5);
+    });
+}
+
+function startSpawnStream(event) {
+    if (event) event.preventDefault();
+    if (state.spawnTimer !== null) return;
+    createBean();
+    state.spawnTimer = window.setInterval(createBean, CONFIG.spawn.intervalMs);
+}
+
+function stopSpawnStream() {
+    if (state.spawnTimer === null) return;
+    window.clearInterval(state.spawnTimer);
+    state.spawnTimer = null;
+}
+
+function handleMouseDown(event) {
+    state.mouse.active = true;
+    state.mouse.x = event.clientX;
+    state.mouse.y = event.clientY;
+    state.mouse.vx = 0;
+    state.mouse.vy = 0;
+
+    state.beans.forEach((bean) => {
+        const dx = bean.body.position.x - state.mouse.x;
+        const dy = bean.body.position.y - state.mouse.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance <= 0.001 || distance >= CONFIG.mouse.clickBurstRadius) return;
+        const burst = (1 - (distance / CONFIG.mouse.clickBurstRadius)) * CONFIG.mouse.clickBurstForceScale * bean.body.mass;
+        Body.applyForce(bean.body, bean.body.position, { x: (dx / distance) * burst, y: (dy / distance) * burst });
+    });
+}
+
+function handleMouseMove(event) {
+    state.mouse.vx = event.clientX - state.mouse.x;
+    state.mouse.vy = event.clientY - state.mouse.y;
+    state.mouse.x = event.clientX;
+    state.mouse.y = event.clientY;
+}
+
+function handleMouseUp() {
+    state.mouse.active = false;
+    state.mouse.vx = 0;
+    state.mouse.vy = 0;
+}
+
+function handleMotion(event) {
+    state.motion.accelX = event.accelerationIncludingGravity?.x ?? 0;
+    state.motion.accelY = event.accelerationIncludingGravity?.y ?? 0;
+    const acceleration = event.acceleration;
+    if (!acceleration) return;
+
+    const total = Math.abs(acceleration.x || 0) + Math.abs(acceleration.y || 0) + Math.abs(acceleration.z || 0);
+    if (total > CONFIG.motion.shakeThreshold && (Date.now() - state.motion.lastShakeAt) > CONFIG.motion.shakeCooldownMs) {
+        state.motion.lastShakeAt = Date.now();
+        state.motion.shakePending = true;
     }
-    draw() {
-        // Update scale for pop-in animation
-        if (this.scale < this.targetScale) {
-            // Smooth animation over 300ms
-            const animationDuration = 300;
-            const elapsedTime = Date.now() - this.birthTime;
-            const progress = Math.min(1, elapsedTime / animationDuration);
-            
-            // Ease-out function for smoother animation
-            this.scale = this.targetScale * (1 - Math.pow(1 - progress, 3));
-        }
-        
-        this.context.save();
-        this.context.translate(this.x, this.y);
-        this.context.rotate(this.angle);
+}
 
-        // Apply scale for pop-in effect
-        const baseRadius = 12; // Based on visual center of bean SVG
-        const scale = this.radius / baseRadius * this.scale;
-        this.context.scale(scale, scale);
-        this.context.translate(-baseRadius, -baseRadius); // Center the bean shape around its center
+function requestMotionPermission() {
+    DeviceMotionEvent.requestPermission()
+        .then((response) => {
+            if (response !== "granted") return;
+            window.addEventListener("devicemotion", handleMotion);
+            requestPermissionButton.style.display = "none";
+        })
+        .catch(console.error);
+}
 
-        // Define the SVG path using Path2D
-        let path = new Path2D("M19.151 4.868a6.744 6.744 0 00-5.96-1.69 12.009 12.009 0 00-6.54 3.47 11.988 11.988 0 00-3.48 6.55 6.744 6.744 0 001.69 5.95 6.406 6.406 0 004.63 1.78 11.511 11.511 0 007.87-3.56C21.3 13.428 22.1 7.818 19.151 4.868Z");
+function bootstrapInputs() {
+    spawnButton.addEventListener("mousedown", startSpawnStream);
+    spawnButton.addEventListener("touchstart", startSpawnStream, { passive: false });
+    spawnButton.addEventListener("mouseup", stopSpawnStream);
+    spawnButton.addEventListener("mouseleave", stopSpawnStream);
+    spawnButton.addEventListener("touchend", stopSpawnStream);
+    spawnButton.addEventListener("touchcancel", stopSpawnStream);
 
-        // Fill the path
-        this.context.fillStyle = this.color;
-        this.context.fill(path);
+    debugButton.addEventListener("click", () => {
+        state.debugEnabled = !state.debugEnabled;
+        debugButton.textContent = state.debugEnabled ? "Debug: ON" : "Debug: OFF";
+    });
 
-        // Outline
-        let outlinePath = new Path2D("M19.151,4.868a6.744,6.744,0,0,0-5.96-1.69,12.009,12.009,0,0,0-6.54,3.47,11.988,11.988,0,0,0-3.48,6.55,6.744,6.744,0,0,0,1.69,5.95,6.406,6.406,0,0,0,4.63,1.78,11.511,11.511,0,0,0,7.87-3.56C21.3,13.428,22.1,7.818,19.151,4.868Zm-14.99,8.48a11.041,11.041,0,0,1,3.19-5.99,10.976,10.976,0,0,1,5.99-3.19,8.016,8.016,0,0,1,1.18-.09,5.412,5.412,0,0,1,3.92,1.49.689.689,0,0,1,.11.13,6.542,6.542,0,0,1-2.12,1.23,7.666,7.666,0,0,0-2.96,1.93,7.666,7.666,0,0,0-1.93,2.96,6.589,6.589,0,0,1-1.71,2.63,6.7,6.7,0,0,1-2.63,1.71,7.478,7.478,0,0,0-2.35,1.36A6.18,6.18,0,0,1,4.161,13.348Zm12.49,3.31c-3.55,3.55-8.52,4.35-11.08,1.79a1.538,1.538,0,0,1-.12-.13,6.677,6.677,0,0,1,2.13-1.23,7.862,7.862,0,0,0,2.96-1.93,7.738,7.738,0,0,0,1.93-2.96,6.589,6.589,0,0,1,1.71-2.63,6.589,6.589,0,0,1,2.63-1.71,7.6,7.6,0,0,0,2.34-1.37C20.791,9.2,19.821,13.488,16.651,16.658Z");
-        this.context.strokeStyle = this.darkerColor;
-        this.context.lineWidth = 1;
-        this.context.stroke(outlinePath);
+    canvas.addEventListener("mousedown", handleMouseDown);
+    canvas.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener("mouseleave", handleMouseUp);
 
-        // Draw internal hitbox only when debug mode is enabled
-        if (GameState.debug.enabled && GameState.debug.showHitboxes) {
-            this.context.beginPath();
-            this.context.arc(baseRadius, baseRadius, baseRadius, 0, Math.PI * 2);
-            this.context.strokeStyle = 'rgba(255, 0, 0, 0.4)';
-            this.context.lineWidth = 1;
-            this.context.stroke();
-        }
+    window.addEventListener("resize", resizeWorld);
+    window.addEventListener("orientationchange", () => setTimeout(resizeWorld, 200));
 
-        this.context.restore();
+    if (isIOS() && typeof DeviceMotionEvent.requestPermission === "function") {
+        requestPermissionButton.style.display = "block";
+        requestPermissionButton.addEventListener("click", requestMotionPermission);
+    } else {
+        window.addEventListener("devicemotion", handleMotion);
     }
+}
 
-    update() {
-        // Apply gravity
-        this.vy += g * GameState.secondsPassed;
-        
-        // Apply air resistance (more realistic for faster objects)
-        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-        if (speed > 0.1) {
-            const airDrag = 0.02 + (speed * 0.0005); // Progressive air resistance
-            this.vx *= (1 - airDrag * GameState.secondsPassed);
-            this.vy *= (1 - airDrag * GameState.secondsPassed);
-        }
-        
-        // Update position
-        this.x += this.vx * GameState.secondsPassed;
-        this.y += this.vy * GameState.secondsPassed;
-        
-        // Update rotation with more realistic angular physics
-        // Angular velocity changes based on linear velocity (rolling effect)
-        const rollingEffect = 0.05;
-        if (Math.abs(this.vx) > 1) {
-            // Beans roll in the direction they're moving
-            const targetAngularVelocity = -this.vx / (this.radius * 2) * rollingEffect;
-            // Gradually adjust angular velocity toward target
-            this.angularVelocity += (targetAngularVelocity - this.angularVelocity) * 0.1;
-        }
-        
-        // Apply angular damping
-        this.angularVelocity *= (1 - 0.05 * GameState.secondsPassed);
-        
-        // Update angle
-        this.angle += this.angularVelocity * GameState.secondsPassed;
-        
-        // Limit maximum speed to prevent physics issues
-        const maxSpeed = 1000;
-        if (speed > maxSpeed) {
-            const scaleFactor = maxSpeed / speed;
-            this.vx *= scaleFactor;
-            this.vy *= scaleFactor;
-        }
-        
-        // Update scale for pop-in animation
-        if (this.scale < this.targetScale) {
-            const animationDuration = 300; // ms
-            const elapsedTime = Date.now() - this.birthTime;
-            const progress = Math.min(1, elapsedTime / animationDuration);
-            
-            // Ease-out function for smoother animation
-            this.scale = this.targetScale * (1 - Math.pow(1 - progress, 3));
-        }
-        console.log(`Bean ${this.id || ''}: vx=${this.vx.toFixed(2)}, vy=${this.vy.toFixed(2)}, x=${this.x.toFixed(2)}, y=${this.y.toFixed(2)}`);
+function gameLoop(timeStamp) {
+    const dtMs = Math.min(33.3, timeStamp - (state.lastFrameTime || timeStamp));
+    state.lastFrameTime = timeStamp;
+    applyMotionForces();
+    applyMouseForces();
+    Engine.update(engine, dtMs);
 
-    }
-}     
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    state.beans.forEach(drawBean);
+    updateAnalytics(timeStamp);
+    drawHud();
 
-
-// Debug mode toggle function
-function toggleDebugMode() {
-    GameState.debug.enabled = !GameState.debug.enabled;
-    const debugButton = document.getElementById('debugButton');
-    debugButton.textContent = GameState.debug.enabled ? 'Debug: ON' : 'Debug: OFF';
-    
-    // Log debug state to console
-    console.log(`Debug mode ${GameState.debug.enabled ? 'enabled' : 'disabled'}`);
+    window.requestAnimationFrame(gameLoop);
 }
 
 function init() {
-    const canvas = document.getElementById('myCanvas');
-    const context = canvas.getContext('2d');
-    document.getElementById('spawnButton').addEventListener('click', spawnCircle);
-    document.getElementById('debugButton').addEventListener('click', toggleDebugMode);
-    
-    // Only show the permission button if the device is iOS
-    if (isIOS() && typeof DeviceMotionEvent.requestPermission === "function") {
-        document.getElementById('requestPermissionButton').style.display = 'block';
-        document.getElementById('requestPermissionButton').addEventListener('click', requestMotionPermission);
-    } else {
-        // If not iOS, just start listening for motion events
-        window.addEventListener("devicemotion", MotionManager.handleMotion);
-        window.addEventListener("devicemotion", MotionManager.detectShake);
-    }
+    Events.on(engine, "collisionStart", handleCollisionStart);
+    resizeWorld();
+    bootstrapInputs();
     window.requestAnimationFrame(gameLoop);
 }
 
-
-function gameLoop(timeStamp) {
-    GameState.secondsPassed = (timeStamp - GameState.oldTimeStamp) / 1000;
-    GameState.secondsPassed = Math.min(GameState.secondsPassed, 0.1);
-    console.log("Seconds passed:", GameState.secondsPassed);
-    GameState.oldTimeStamp = timeStamp;
-    
-    clearCanvas();
-     // Apply tilt-based motion
-     MotionManager.applyMotionToBeans();
-
-     // Apply shake effect if triggered
-     if (motion.shakePending) {
-         applyShakeEffect();
-         motion.shakePending = false;
-     }
-    GameState.gameObjects.forEach(obj => {obj.update();});
-    detectCollisions();
-    detectEdgeCollisions();
-     detectMouseCollisions();
-    GameState.gameObjects.forEach(obj => obj.draw());
-    drawStats();
-
-    window.requestAnimationFrame(gameLoop);
-}
-
-document.getElementById('requestPermissionButton').addEventListener('click', requestMotionPermission);
-
-function clearCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-function drawStats() {
-    ctx.fillStyle = 'white';
-    ctx.font = '16px Arial';
-    
-    // Always show basic stats
-    let totalObjects = GameState.gameObjects.length;
-    ctx.fillText(`Total Objects: ${totalObjects}`, 10, 20);
-    
-    // Show debug info only when debug mode is enabled
-    if (GameState.debug.enabled) {
-        let totalForce = GameState.gameObjects.reduce((sum, obj) => sum + obj.totalForce, 0);
-        let avgForce = totalObjects > 0 ? totalForce / totalObjects : 0;
-        let forceDeviation = Math.sqrt(GameState.gameObjects.reduce((sum, obj) => sum + Math.pow(obj.totalForce - avgForce, 2), 0) / totalObjects || 0);
-        
-        ctx.fillText(`Average Force: ${avgForce.toFixed(2)}`, 10, 40);
-        ctx.fillText(`Force Deviation: ${forceDeviation.toFixed(2)}`, 10, 60);
-        ctx.fillText(`Accel X: ${motion.accelX.toFixed(2)}`, 10, 80);
-        ctx.fillText(`Accel Y: ${motion.accelY.toFixed(2)}`, 10, 100);
-        ctx.fillText(`Last shake time: ${motion.lastShakeTime}`, 10, 120);
-        ctx.fillText(`Debug Mode: ON`, 10, 140);
-        
-        // Draw FPS
-        const fps = Math.round(1 / GameState.secondsPassed);
-        ctx.fillText(`FPS: ${fps}`, 10, 160);
-    } else {
-        ctx.fillText(`Debug Mode: OFF`, 10, 40);
-    }
-}
-
-function detectMouseCollisions() {
-    if (!mouse.active) return;
-    GameState.gameObjects.forEach(obj => {
-        let dx = obj.x - mouse.x;
-        let dy = obj.y - mouse.y;
-        let distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance <= obj.radius + mouse.radius) {
-            let overlap = obj.radius + mouse.radius - distance;
-            obj.x += (overlap / 2) * (dx / distance);
-            obj.y += (overlap / 2) * (dy / distance);
-            obj.vx = -Math.abs(obj.vx) * restitution;
-            obj.vy = -Math.abs(obj.vy) * restitution;
-            resolveCollision(obj, {
-                x: mouse.x,
-                y: mouse.y,
-                vx: mouse.vx + 2,
-                vy: mouse.vy + 2,
-                mass: mouse.mass
-            });
-        }
-    });
-}
-
-function detectCollisions() {
-    for (let obj of GameState.gameObjects) {
-        obj.isColliding = false;
-    }
-
-    for (let i = 0; i < GameState.gameObjects.length; i++) {
-        for (let j = i + 1; j < GameState.gameObjects.length; j++) {
-            let obj1 = GameState.gameObjects[i];
-            let obj2 = GameState.gameObjects[j];
-            if (circleIntersect(obj1.x, obj1.y, obj1.radius, obj2.x, obj2.y, obj2.radius)) {
-                obj1.isColliding = true;
-                obj2.isColliding = true;
-                resolveCollision(obj1, obj2);
-            }
-        }
-    }
-}
-
-function detectEdgeCollisions() {
-    const floorBuffer = 10;
-    const wallRestitution = restitution * 0.9; // Slightly less bouncy walls for more realism
-    const floorFriction = 0.98; // Increased floor friction for more realistic movement
-
-    GameState.gameObjects.forEach(obj => {
-        let collided = false;
-        
-        // LEFT WALL
-        if ((obj.x - obj.radius) <= 0) {
-            // Calculate impact velocity for more realistic bounce
-            const impactVelocity = Math.abs(obj.vx);
-            obj.vx = impactVelocity * wallRestitution;
-            obj.x = obj.radius;
-            
-            // Add some vertical velocity variation for more natural bounces
-            obj.vy += (Math.random() - 0.5) * impactVelocity * 0.1;
-            
-            // Add angular velocity based on impact
-            obj.angularVelocity += impactVelocity * 0.01;
-            
-            collided = true;
-        }
-
-        // RIGHT WALL
-        if ((obj.x + obj.radius) >= canvas.width) {
-            const impactVelocity = Math.abs(obj.vx);
-            obj.vx = -impactVelocity * wallRestitution;
-            obj.x = canvas.width - obj.radius;
-            
-            // Add some vertical velocity variation for more natural bounces
-            obj.vy += (Math.random() - 0.5) * impactVelocity * 0.1;
-            
-            // Add angular velocity based on impact
-            obj.angularVelocity -= impactVelocity * 0.01;
-            
-            collided = true;
-        }
-
-        // CEILING
-        if ((obj.y - obj.radius) <= 0) {
-            const impactVelocity = Math.abs(obj.vy);
-            obj.vy = impactVelocity * wallRestitution;
-            obj.y = obj.radius;
-            
-            // Add some horizontal velocity variation for more natural bounces
-            obj.vx += (Math.random() - 0.5) * impactVelocity * 0.1;
-            
-            collided = true;
-        }
-
-        // FLOOR
-        const floorY = canvas.height - obj.radius - floorBuffer;
-        if ((obj.y + obj.radius) >= canvas.height - floorBuffer) {
-            const impactVelocity = Math.abs(obj.vy);
-            
-            // More realistic floor bounce with velocity-dependent restitution
-            // Harder impacts have less restitution (energy loss)
-            const dynamicRestitution = Math.max(0.3, restitution - (impactVelocity * 0.0005));
-            obj.vy = -impactVelocity * dynamicRestitution;
-            obj.y = floorY;
-
-            // Apply stronger horizontal friction ONLY on the floor
-            // Friction increases with impact velocity
-            const frictionFactor = Math.max(floorFriction, 1 - (impactVelocity * 0.0005));
-            obj.vx *= frictionFactor;
-            
-            // Apply rolling physics - beans roll in the direction they're moving
-            const rollingEffect = 0.2;
-            const targetAngularVelocity = -obj.vx / (obj.radius * 2) * rollingEffect;
-            obj.angularVelocity = obj.angularVelocity * 0.8 + targetAngularVelocity * 0.2;
-            
-            // Stop very slow movement
-            if (Math.abs(obj.vx) < 0.5) obj.vx = 0;
-            if (Math.abs(obj.vy) < 0.5) obj.vy = 0;
-            
-            collided = true;
-        }
-        
-        // Add a small "bump" effect when colliding with edges
-        if (collided && GameState.debug.enabled) {
-            obj.isColliding = true; // Highlight in debug mode
-        }
-        
-        // Draw debug visualizations if enabled
-        if (GameState.debug.enabled) {
-            // Draw hitbox
-            if (GameState.debug.showHitboxes) {
-                ctx.beginPath();
-                ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
-                ctx.strokeStyle = obj.isColliding ? 'rgba(255, 0, 0, 0.7)' : 'rgba(255, 0, 0, 0.4)';
-                ctx.lineWidth = obj.isColliding ? 2 : 1;
-                ctx.stroke();
-            }
-            
-            // Draw velocity vectors
-            if (GameState.debug.showVelocityVectors && (Math.abs(obj.vx) > 0.1 || Math.abs(obj.vy) > 0.1)) {
-                const vectorScale = 0.1; // Scale factor for vector visualization
-                ctx.beginPath();
-                ctx.moveTo(obj.x, obj.y);
-                ctx.lineTo(obj.x + obj.vx * vectorScale, obj.y + obj.vy * vectorScale);
-                ctx.strokeStyle = 'rgba(0, 255, 0, 0.7)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                
-                // Draw arrowhead
-                const angle = Math.atan2(obj.vy, obj.vx);
-                const arrowSize = 5;
-                ctx.beginPath();
-                ctx.moveTo(obj.x + obj.vx * vectorScale, obj.y + obj.vy * vectorScale);
-                ctx.lineTo(
-                    obj.x + obj.vx * vectorScale - arrowSize * Math.cos(angle - Math.PI / 6),
-                    obj.y + obj.vy * vectorScale - arrowSize * Math.sin(angle - Math.PI / 6)
-                );
-                ctx.lineTo(
-                    obj.x + obj.vx * vectorScale - arrowSize * Math.cos(angle + Math.PI / 6),
-                    obj.y + obj.vy * vectorScale - arrowSize * Math.sin(angle + Math.PI / 6)
-                );
-                ctx.closePath();
-                ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
-                ctx.fill();
-            }
-            
-            // Draw force values
-            if (GameState.debug.showForceValues) {
-                ctx.fillStyle = 'white';
-                ctx.font = '10px Arial';
-                ctx.fillText(`F: ${Math.round(obj.totalForce)}`, obj.x - 15, obj.y - obj.radius - 5);
-            }
-        }
-    });
-}
-
-
-
-function circleIntersect(x1, y1, r1, x2, y2, r2) {
-    let squareDistance = (x1 - x2) ** 2 + (y1 - y2) ** 2;
-    return squareDistance <= (r1 + r2) ** 2;
-}
-
-function resolveCollision(obj1, obj2) {
-    // Calculate collision vector and distance
-    let vCollision = { x: obj2.x - obj1.x, y: obj2.y - obj1.y };
-    let distance = Math.sqrt(vCollision.x ** 2 + vCollision.y ** 2);
-    
-    // Prevent objects from sticking together
-    if (distance < minSeparation) return;
-
-    // Normalize collision vector
-    let vCollisionNorm = { x: vCollision.x / distance, y: vCollision.y / distance };
-    
-    // Calculate relative velocity
-    let vRelativeVelocity = { x: obj1.vx - obj2.vx, y: obj1.vy - obj2.vy };
-    
-    // Calculate speed in the direction of the collision
-    let speed = vRelativeVelocity.x * vCollisionNorm.x + vRelativeVelocity.y * vCollisionNorm.y;
-    
-    // If objects are moving away from each other, no collision response needed
-    if (speed < 0) return;
-
-    // Calculate impulse scalar
-    let impulse = (2 * speed * restitution) / (obj1.mass + obj2.mass);
-    
-    // Calculate force for color change and apply impulse to velocities
-    if (obj2.type === "mouse") {
-        // Special case for mouse interactions
-        let force1 = impulse * obj2.mass * 2; // Increased force for mouse
-        obj1.totalForce += force1 * 0.25;
-        obj1.updateColorBasedOnForce();
-        
-        // Apply squared velocity for more dramatic mouse effect
-        obj1.vx = Math.sign(obj1.vx - impulse * obj2.mass * vCollisionNorm.x) * 
-                 Math.pow(Math.abs(obj1.vx - impulse * obj2.mass * vCollisionNorm.x), 1.2);
-        obj1.vy = Math.sign(obj1.vy - impulse * obj2.mass * vCollisionNorm.y) * 
-                 Math.pow(Math.abs(obj1.vy - impulse * obj2.mass * vCollisionNorm.y), 1.2);
-                 
-        // Add some random spin for more natural movement
-        obj1.angularVelocity += (Math.random() - 0.5) * 10;
-    } else {
-        // Normal object-to-object collision
-        let force1 = impulse * obj2.mass;
-        obj1.totalForce += force1 * 0.25;
-        obj1.updateColorBasedOnForce();
-        
-        // Apply impulse to velocity
-        obj1.vx -= impulse * obj2.mass * vCollisionNorm.x;
-        obj1.vy -= impulse * obj2.mass * vCollisionNorm.y;
-        
-        // Apply angular velocity change based on collision point
-        // This creates a more realistic rotation effect during collisions
-        const tangentVelocity = vRelativeVelocity.x * -vCollisionNorm.y + vRelativeVelocity.y * vCollisionNorm.x;
-        obj1.angularVelocity += tangentVelocity * 0.05;
-        
-        // Apply impulse to second object if it's not a mouse
-        let force2 = impulse * obj1.mass;
-        obj2.vx += impulse * obj1.mass * vCollisionNorm.x;
-        obj2.vy += impulse * obj1.mass * vCollisionNorm.y;
-        obj2.totalForce += force2 * 0.25;
-        
-        // Update color of second object
-        if (typeof obj2.updateColorBasedOnForce === 'function') {
-            obj2.updateColorBasedOnForce();
-        }
-        
-        // Apply angular velocity to second object
-        obj2.angularVelocity -= tangentVelocity * 0.05;
-    }
-    
-    // Add a small bounce effect if one object is stationary (on floor)
-    const isObj1Resting = Math.abs(obj1.vx) < 0.1 && Math.abs(obj1.vy) < 0.1;
-    const isObj2Resting = Math.abs(obj2.vx) < 0.1 && Math.abs(obj2.vy) < 0.1;
-    const bounceBoost = 2.0; // Increased bounce effect
-    
-    if (isObj1Resting && Math.abs(obj2.vy) > 0.5) {
-        obj1.vy -= bounceBoost;
-        // Add a bit of horizontal movement for more natural behavior
-        obj1.vx += (Math.random() - 0.5) * bounceBoost;
-    } else if (isObj2Resting && Math.abs(obj1.vy) > 0.5) {
-        obj2.vy -= bounceBoost;
-        // Add a bit of horizontal movement for more natural behavior
-        obj2.vx += (Math.random() - 0.5) * bounceBoost;
-    }
-}
-
-// Spawning logic
-function spawnCircle() {
-    // Create beans with varied sizes
-    const minRadius = 15;
-    const maxRadius = 30;
-    //const visualRadius = minRadius + Math.random() * (maxRadius - minRadius);
-    const visualRadius = 20 
-    const hitboxRadius = visualRadius * 0.8; // Slightly smaller hitbox for better alignment with bean shape
-    
-    // Position with slight preference for the center of the screen
-    const centerBias = 0.3; // How much to bias toward center (0-1)
-    const randomX = Math.random();
-    const randomY = Math.random();
-    
-    // Apply center bias using a weighted average
-    const biasedX = randomX * (1 - centerBias) + 0.5 * centerBias;
-    const biasedY = randomY * (1 - centerBias) + 0.5 * centerBias;
-    
-    // Calculate position
-    const x = biasedX * (canvas.width - 2 * hitboxRadius) + hitboxRadius;
-    const y = biasedY * (canvas.height - 2 * hitboxRadius) + hitboxRadius;
-    
-    // More varied velocities with a slight upward bias (for more interesting initial movement)
-    const speedVariation = 250; // Higher value for more varied initial speeds
-    const vx = (Math.random() - 0.5) * speedVariation;
-    const vy = (Math.random() - 0.7) * speedVariation; // Slight upward bias (-0.7 instead of -0.5)
-    
-    // Mass is proportional to volume (r³) for more realistic physics
-    const mass = Math.pow(hitboxRadius, 3) * 0.1 * (Math.random() * (1.15 - 1) + 1);
-    
-    // Random initial angle and spin
-    const angle = Math.random() * 2 * Math.PI;
-    const angularVelocity = (Math.random() - 0.5) * 8; // More initial spin
-    
-    // Create the bean
-    const newCircle = new Circle(ctx, x, y, vx, vy, hitboxRadius, mass, angle, angularVelocity);
-    newCircle.visualRadius = visualRadius;
-    
-    // Add a small "pop-in" effect
-    newCircle.scale = 0.1; // Start small
-    newCircle.targetScale = 1.0; // Grow to full size
-    
-    // Add to game objects
-    GameState.gameObjects.push(newCircle);
-    
-    // Add a small force burst when spawning multiple beans
-    if (GameState.gameObjects.length > 1 && Math.random() > 0.7) {
-        // Find nearby beans and push them away slightly
-        const spawnForce = 100;
-        GameState.gameObjects.forEach(obj => {
-            if (obj !== newCircle) {
-                const dx = obj.x - newCircle.x;
-                const dy = obj.y - newCircle.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < 100) { // Only affect nearby beans
-                    const forceMagnitude = spawnForce * (1 - distance / 100);
-                    obj.vx += (dx / distance) * forceMagnitude;
-                    obj.vy += (dy / distance) * forceMagnitude;
-                }
-            }
-        });
-    }
-}
+init();

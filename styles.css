@@ -1,11 +1,9 @@
-/* Basic reset */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-/* Full-screen experience */
 body {
     font-family: Arial, sans-serif;
     display: flex;
@@ -13,15 +11,14 @@ body {
     align-items: center;
     flex-direction: column;
     width: 100vw;
-    height: 100dvh; /* Keeps it fullscreen */
+    height: 100dvh;
     background: #f4f4f9;
-    overflow: hidden; /* Prevents scrolling */
+    overflow: hidden;
     position: relative;
-    touch-action: pan-down; /* Allows pull-to-refresh but no zooming */
-    overscroll-behavior-y: contain; /* Allows pull-to-refresh without scrolling */
+    touch-action: pan-down;
+    overscroll-behavior-y: contain;
 }
 
-/* Full-screen responsive canvas */
 canvas {
     width: 100vw;
     height: 100dvh;
@@ -31,29 +28,28 @@ canvas {
     left: 0;
     z-index: 0;
 }
-/* Permission button styling */
+
 #requestPermissionButton {
     position: absolute;
     top: 60%;
     left: 50%;
     transform: translateX(-50%);
     padding: 12px 20px;
-    background: #007AFF; /* iOS-style blue */
+    background: #007AFF;
     color: white;
     border: none;
     border-radius: 8px;
     font-size: 16px;
     cursor: pointer;
     transition: background 0.3s ease;
-    z-index: 10; /* Keeps it above the canvas */
-    display: none; /* Hidden by default */
+    z-index: 10;
+    display: none;
 }
 
 #requestPermissionButton:hover {
     background: #005EC2;
 }
 
-/* Button positioning and styling */
 #spawnButton {
     padding: 12px 25px;
     background: #6f4f1f;
@@ -69,7 +65,6 @@ canvas {
     background: #4e3629;
 }
 
-/* Debug button styling */
 #debugButton {
     position: absolute;
     top: 20px;
@@ -82,7 +77,7 @@ canvas {
     font-size: 14px;
     cursor: pointer;
     transition: background 0.3s ease, transform 0.2s ease;
-    z-index: 10; /* Ensures it stays above the canvas */
+    z-index: 10;
 }
 
 #debugButton:hover {
@@ -94,13 +89,6 @@ canvas {
     transform: scale(0.95);
 }
 
-/* Responsive fix: Re-center the button on resize */
-@media (max-height: 600px) {
-    #spawnButton {
-        top: 60%; /* Adjust for very small screens */
-    }
-}
-
 .button-wrapper {
     position: absolute;
     top: 50%;
@@ -109,35 +97,5 @@ canvas {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
     z-index: 10;
-}
-
-/* Sparkly milestone button */
-#milestoneButton {
-    display: inline-block;
-    padding: 12px 25px;
-    font-size: 16px;
-    font-weight: bold;
-    color: white;
-    background: linear-gradient(270deg, #ff00cc, #3333ff, #00ffee, #ffcc00, #ff0077);
-    background-size: 600% 600%;
-    border: none;
-    border-radius: 10px;
-    text-align: center;
-    text-decoration: none;
-    animation: rainbowFlow 8s ease infinite;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease;
-}
-
-#milestoneButton:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
-}
-
-@keyframes rainbowFlow {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
 }
